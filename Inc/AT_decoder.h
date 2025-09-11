@@ -32,18 +32,6 @@ typedef enum
 	AT_TIMEOUT = 3		//TIMEOUT-> O tempo para executar a tarefa estourou
 }AT_Status;
 
-typedef struct AT_INFO
-{
-	char at_command[50];
-	volatile uint8_t response_buffer[TAMANHO_MENSAGEM];
-    char *echo;
-    char *response;
-    char *OK;
-    uint8_t status;
-    volatile uint8_t existMessage;
-}AT_INFO;
-
-
 typedef struct AT_Wait_Response
 {
 	uint32_t start_tick;
@@ -52,11 +40,28 @@ typedef struct AT_Wait_Response
 	uint8_t waiting_status;
 }AT_Wait_Response;
 
-AT_Status AT_processCommand(UART_HandleTypeDef *huartx, AT_INFO *at);
-AT_Status AT_config_Wait_Response(AT_Wait_Response *wait_response, const char *expected_response, uint32_t timeout);
-AT_Status AT_check_Wait_Response(AT_Wait_Response *wait_response, AT_INFO *at);
-AT_Status AT_check_Wait_Response_Blocking(AT_Wait_Response *wait_response, AT_INFO *at);
-AT_Status AT_sendCommand(UART_HandleTypeDef *huartx, AT_INFO *at);
+typedef struct AT_INFO
+{
+	UART_HandleTypeDef *huart;
+	char at_command[50];
+	volatile uint8_t response_buffer[TAMANHO_MENSAGEM];
+    char *echo;
+    char *response;
+    char *OK;
+    uint8_t status;
+    volatile uint8_t existMessage;
+    AT_Wait_Response wait_response;
+}AT_INFO;
+
+
+
+AT_Status AT_defineUART(AT_INFO *at, UART_HandleTypeDef *huartx);
+AT_Status AT_processCommand(AT_INFO *at);
+AT_Status AT_config_Wait_Response(AT_INFO *at, const char *expected_response, uint32_t timeout);
+AT_Status AT_check_Wait_Response(AT_INFO *at);
+AT_Status AT_check_Wait_Response_Blocking(AT_INFO *at);
+AT_Status AT_sendText(AT_INFO *at);
+AT_Status AT_sendCommand(AT_INFO *at);
 AT_Status AT_responseCommand(AT_INFO *at);
 
 

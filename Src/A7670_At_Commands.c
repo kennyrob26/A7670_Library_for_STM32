@@ -7,27 +7,22 @@
 
 #include "A7670_At_Commands.h"
 
-//#define COMMAND_OK 1
-//#define COMMAND_ERROR 0
-
-
-
 NEMA nema;
 GNSS gnss;
 
 
-CMD_Status A7670_CMD_Creset(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Response *wait_response)
+CMD_Status A7670_CMD_Creset(AT_INFO *at)
 {
 	strcpy(at->at_command, "AT+CRESET");
 
-	if(AT_processCommand(huartx, at) == AT_OK)
+	if(AT_processCommand(at) == AT_OK)
 	{
 		return CMD_OK;
 	}
 	else
 		return CMD_ERROR;
 }
-CMD_Status A7670_GPS_Init(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Response *wait_response)
+CMD_Status A7670_GPS_Init(AT_INFO *at)
 {
 	Connect_GNSS_state gnss_state = GNSS_PWR;
 	uint8_t attemps = 0;
@@ -36,7 +31,7 @@ CMD_Status A7670_GPS_Init(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Respo
 	{
 		switch (gnss_state) {
 			case GNSS_PWR:
-				if(A7670_GPS_CMD_CGNSSPWR(huartx, at, wait_response) == CMD_OK && attemps < max_attemps)
+				if(A7670_GPS_CMD_CGNSSPWR(at) == CMD_OK && attemps < max_attemps)
 				{
 					gnss_state = GNSS_CAGPS;
 					attemps = 0;
@@ -52,11 +47,11 @@ CMD_Status A7670_GPS_Init(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Respo
 				}
 			break;
 			case GNSS_CAGPS:
-				A7670_GPS_CMD_CAGPS(huartx, at, wait_response);
+				A7670_GPS_CMD_CAGPS(at);
 				gnss_state = GNSS_PORTSWITCH;
 			break;
 			case GNSS_PORTSWITCH:
-				if(A7670_GPS_CMD_CGNSSPORTSWITCH(huartx, at, wait_response) == CMD_OK && attemps < max_attemps)
+				if(A7670_GPS_CMD_CGNSSPORTSWITCH(at) == CMD_OK && attemps < max_attemps)
 				{
 					gnss_state = GNSS_OK;
 					attemps = 0;
@@ -69,78 +64,55 @@ CMD_Status A7670_GPS_Init(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Respo
 					gnss_state = GNSS_PORTSWITCH;
 
 			break;
+			case GNSS_RESET_MODULE:
+				return CMD_ERROR;
 			default:
-				break;
+				return CMD_ERROR;
 		}
 	}
 
 	return CMD_OK;
-/*	strcpy(at->at_command, "AT+CGNSSPWR=1");
-
-	if(AT_sendCommand(huartx, at) == AT_OK)
-	{
-		AT_config_Wait_Response(wait_response, "READY!", 15000);
-		AT_check_Wait_Response_Blocking(wait_response, at);
-
-		strcpy(at->at_command, "AT+CAGPS");
-		if(AT_sendCommand(huartx, at) == AT_OK)
-		{
-			AT_config_Wait_Response(wait_response, "success", 5000);
-			AT_check_Wait_Response_Blocking(wait_response, at);
-		}
-
-		strcpy(at->at_command, "AT+CGNSSPORTSWITCH=1,1");
-		AT_processCommand(huartx, at);
-
-
-		return CMD_OK;
-	}
-	return CMD_ERROR;
-	*/
 }
 
-CMD_Status A7670_GPS_CMD_CGNSSPWR(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Response *wait_response)
+CMD_Status A7670_GPS_CMD_CGNSSPWR(AT_INFO *at)
 {
 	strcpy(at->at_command, "AT+CGNSSPWR=1");
 
-	if(AT_sendCommand(huartx, at) == AT_OK)
+	if(AT_sendCommand(at) == AT_OK)
 	{
-		AT_config_Wait_Response(wait_response, "READY!", 15000);
-		AT_check_Wait_Response_Blocking(wait_response, at);
-
-		return CMD_OK;
+		AT_config_Wait_Response(at, "READY!", 15000);
+		if(AT_check_Wait_Response_Blocking(at) == AT_OK)
+			return CMD_OK;
 	}
 
 	return CMD_ERROR;
 }
 
-CMD_Status A7670_GPS_CMD_CAGPS(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Response *wait_response)
+CMD_Status A7670_GPS_CMD_CAGPS(AT_INFO *at)
 {
 	strcpy(at->at_command, "AT+CAGPS");
-	if(AT_sendCommand(huartx, at) == AT_OK)
+	if(AT_processCommand(at) == AT_OK)
 	{
-		AT_config_Wait_Response(wait_response, "success", 5000);
-		AT_check_Wait_Response_Blocking(wait_response, at);
-
-		return CMD_OK;
+		AT_config_Wait_Response(at, "success", 5000);
+		if(AT_check_Wait_Response_Blocking(at) == AT_OK)
+			return CMD_OK;
 	}
-
 	return CMD_ERROR;
 }
 
-CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Response *wait_response)
+CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH(AT_INFO *at)
 {
 	strcpy(at->at_command, "AT+CGNSSPORTSWITCH=1,1");
-	if (AT_processCommand(huartx, at))
+	if (AT_processCommand(at))
 		return CMD_OK;
 
 	return CMD_ERROR;
 }
-CMD_Status A7670_GPS_CMD_CGPSINFO(UART_HandleTypeDef *huartx, AT_INFO *at)
+CMD_Status A7670_GPS_CMD_CGPSINFO(AT_INFO *at)
 {
 	strcpy(at->at_command, "AT+CGPSINFO");
 
-	if(AT_processCommand(huartx, at) == AT_OK)
+	if(AT_processCommand(at) == AT_OK)
 	{
 		readNEMA(at->response);
 		return CMD_OK;

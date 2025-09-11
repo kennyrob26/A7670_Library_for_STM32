@@ -11,49 +11,60 @@ AT_Status existNewMessage(AT_INFO *at);
 AT_Status processMessage(AT_INFO *at);
 
 
-AT_Status AT_processCommand(UART_HandleTypeDef *huartx, AT_INFO *at)
+
+AT_Status AT_defineUART(AT_INFO *at, UART_HandleTypeDef *huartx)
+{
+	at->huart = huartx;
+	if(at->huart != NULL)
+		return AT_OK;
+	else
+		return AT_ERROR;
+}
+
+
+AT_Status AT_processCommand(AT_INFO *at)
 {
 	at->existMessage = 0;
-	if (AT_sendCommand(huartx, at) == AT_OK)
+	if (AT_sendCommand(at) == AT_OK)
 	{
 		if (AT_responseCommand(at) == AT_OK)
 		{
 			if(at->echo != NULL)
 			{
-				if(strcmp(at->echo, at->at_command) == 0)
+				//if(strncmp(at->echo, at->at_command, strlen(at->echo)) == 0)
+				if(strstr(at->echo, at->at_command))
 					return AT_OK;
 				else
 					return AT_ERROR;
 			}
 			else
 				return AT_OK;
-
 		}
 	}
 	return AT_ERROR;
 }
 
-AT_Status AT_config_Wait_Response(AT_Wait_Response *wait_response, const char *expected_response, uint32_t timeout)
+AT_Status AT_config_Wait_Response(AT_INFO *at, const char *expected_response, uint32_t timeout)
 {
-	wait_response->start_tick = HAL_GetTick();
-	wait_response->timeout = timeout;
-	strcpy(wait_response->expected_response, expected_response);
-	wait_response->waiting_status = 1;
+	at->wait_response.start_tick = HAL_GetTick();
+	at->wait_response.timeout = timeout;
+	strcpy(at->wait_response.expected_response, expected_response);
+	at->wait_response.waiting_status = 1;
 
 	return AT_OK;
 }
 
-AT_Status AT_check_Wait_Response(AT_Wait_Response *wait_response, AT_INFO *at)
+AT_Status AT_check_Wait_Response(AT_INFO *at)
 {
-	if(wait_response->waiting_status == 0)
+	if(at->wait_response.waiting_status == 0)
 		return AT_ERROR;
 
-	if(at->existMessage)
+	if(at->existMessage == 1)
 	{
-		if(strstr((char*)at->response_buffer, wait_response->expected_response) != NULL)			//Significa que a mensagem contém o Token procurado
+		if(strstr((char*)at->response_buffer, at->wait_response.expected_response) != NULL)			//Significa que a mensagem contém o Token procurado
 		{
 			at->existMessage = 0;
-			wait_response->waiting_status = 0;
+			at->wait_response.waiting_status = 0;
 			return AT_OK;
 		}
 		else
@@ -62,22 +73,22 @@ AT_Status AT_check_Wait_Response(AT_Wait_Response *wait_response, AT_INFO *at)
 		}
 	}
 
-	if((HAL_GetTick() - wait_response->start_tick) > wait_response->timeout)
+	if((HAL_GetTick() - at->wait_response.start_tick) > at->wait_response.timeout)
 	{
-		wait_response->waiting_status = 0;
+		at->wait_response.waiting_status = 0;
 		return AT_TIMEOUT;
 	}
 
 	return AT_WAITING;
 }
 
-AT_Status AT_check_Wait_Response_Blocking(AT_Wait_Response *wait_response, AT_INFO *at)
+AT_Status AT_check_Wait_Response_Blocking(AT_INFO *at)
 {
 	uint8_t check_wait_response = AT_WAITING;
 
 	while(check_wait_response == AT_WAITING)
 	{
-		check_wait_response = AT_check_Wait_Response(wait_response, at);
+		check_wait_response = AT_check_Wait_Response(at);
 	}
 
 	if(check_wait_response == AT_OK)
@@ -88,26 +99,35 @@ AT_Status AT_check_Wait_Response_Blocking(AT_Wait_Response *wait_response, AT_IN
 		return AT_ERROR;
 }
 
-AT_Status AT_sendCommand(UART_HandleTypeDef *huartx, AT_INFO *at)
+AT_Status AT_sendCommand(AT_INFO *at)
 {
 	uint8_t length = strlen(at->at_command);
 
 	at->at_command[length]     = '\r';
 	at->at_command[length + 1] = '\0';
 
-	if(HAL_UART_Transmit(huartx, (uint8_t*)at->at_command, length+1, 100) == HAL_OK)
+	if(HAL_UART_Transmit(at->huart, (uint8_t*)at->at_command, length+1, 100) == HAL_OK)
 	{
 		  return AT_OK;
 	}
 	return AT_ERROR;
 }
 
+AT_Status AT_sendText(AT_INFO *at)
+{
+	uint8_t length = strlen(at->at_command);
+	if(HAL_UART_Transmit(at->huart, (uint8_t*)at->at_command, length, 100) == HAL_OK)
+	{
+		 return AT_OK;
+	}
+	return AT_ERROR;
+}
 
 
 
 AT_Status AT_responseCommand(AT_INFO *at)
 {
-	if(existNewMessage(at))
+	if(existNewMessage(at) == AT_OK)
 	{
 		if(processMessage(at) == AT_OK)
 			return AT_OK;
@@ -143,8 +163,7 @@ AT_Status processMessage(AT_INFO *at)
 
 	if(strncmp((char*)at->response_buffer, "AT", 2) == 0)
 	{
-
-		at->echo = strtok((char*)at->response_buffer, "\r\r\n");
+		at->echo = strtok(at->response_buffer, "\r\r\n");
 		if(at->echo == NULL)
 		{
 			at->status = 0;
@@ -177,7 +196,7 @@ AT_Status processMessage(AT_INFO *at)
 	else
 	{
 		at->echo = NULL;
-		strcpy(at->response, at->response_buffer);
+		strcpy((char*)at->response, at->response_buffer);
 
 		return AT_OK;
 	}

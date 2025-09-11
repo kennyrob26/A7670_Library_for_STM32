@@ -53,12 +53,12 @@ typedef struct GNSS
 
 
 
-CMD_Status A7670_CMD_Creset(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Response *wait_response);
-CMD_Status A7670_GPS_Init(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Response *wait_response);
-CMD_Status A7670_GPS_CMD_CGNSSPWR(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Response *wait_response);
-CMD_Status A7670_GPS_CMD_CAGPS(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Response *wait_response);
-CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH(UART_HandleTypeDef *huartx, AT_INFO *at, AT_Wait_Response *wait_response);
-CMD_Status A7670_GPS_CMD_CGPSINFO(UART_HandleTypeDef *huartx, AT_INFO *at);
+CMD_Status A7670_CMD_Creset(AT_INFO *at);
+CMD_Status A7670_GPS_Init(AT_INFO *at);
+CMD_Status A7670_GPS_CMD_CGNSSPWR(AT_INFO *at);
+CMD_Status A7670_GPS_CMD_CAGPS(AT_INFO *at);
+CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH(AT_INFO *at);
+CMD_Status A7670_GPS_CMD_CGPSINFO(AT_INFO *at);
 void readNEMA(char *dataNEMA);
 void nextValueNema(char **value, char *previous_value);
 void convertNemaToGNSS(GNSS *gnss, NEMA nema);
