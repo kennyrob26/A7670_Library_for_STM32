@@ -6,6 +6,54 @@
  */
 #include "A7670_Commands_MQTT.h"
 
+CMD_Status A7670_MQTT_Config_MQTT(AT_INFO *at, MQTT *mqtt)
+{
+	MQTT_Connect_State mqtt_state = MQTT_START;
+
+	while(mqtt_state != MQTT_OK)
+	{
+		switch (mqtt_state)
+		{
+			case MQTT_START:
+				if(A7670_MQTT_CMD_Start(at) == CMD_OK)
+				{
+					mqtt_state = MQTT_ACCQ;
+				}
+				else
+				{
+					mqtt_state = MQTT_RESET_MODULE;
+				}
+			break;
+			case MQTT_ACCQ:
+				if(A7670_MQTT_CMD_Acquire_Client(at, mqtt))
+				{
+					mqtt_state = MQTT_CONNECT;
+				}
+				else
+				{
+					mqtt_state = MQTT_RESET_MODULE;
+				}
+			break;
+			case MQTT_CONNECT:
+				if(A7670_MQTT_CMD_Connect(at, mqtt))
+				{
+					mqtt_state = MQTT_OK;
+				}
+				else
+				{
+					mqtt_state = MQTT_RESET_MODULE;
+				}
+			break;
+			case MQTT_RESET_MODULE:
+				return CMD_ERROR;
+			default:
+				return CMD_ERROR;
+				break;
+
+		}
+	}
+}
+
 CMD_Status A7670_MQTT_CMD_Start(AT_INFO *at)
 {
 	strcpy(at->at_command, "AT+CMQTTSTART");
@@ -39,6 +87,7 @@ CMD_Status A7670_MQTT_CMD_Connect(AT_INFO *at, MQTT *mqtt)
 	}
 	return CMD_ERROR;
 }
+
 
 CMD_Status A7670_MQTT_Publish_Message(AT_INFO *at, MQTT *mqtt)
 {
@@ -94,38 +143,9 @@ CMD_Status A7670_MQTT_CMD_Pub_Topic(AT_INFO *at, MQTT *mqtt)
 
 	}
 	return CMD_ERROR;
-	/*
-	if(A7670_MQTT_CMD_PTOPIC(at, mqtt) == CMD_OK)
-	{
-		if(A7670_MQTT_CMD_Payload(at, mqtt) == CMD_OK)
-		{
-			if(A7670_MQTT_CMD_Publish(at, mqtt) == CMD_OK)
-				return CMD_OK;
-		}
-	}
-	return CMD_ERROR;
-	*/
 
 }
 
-CMD_Status A7670_MQTT_CMD_PTOPIC(AT_INFO *at, MQTT *mqtt)
-{
-	uint8_t topic_length   = strlen(mqtt->message.topic);
-	sprintf(at->at_command, "%s%d,%d", "AT+CMQTTTOPIC=", mqtt->client.id, topic_length);
-	if(AT_sendCommand(at) == AT_OK)
-	{
-		HAL_Delay(50);
-		strcpy(at->at_command, mqtt->message.topic);
-		if(AT_sendCommand(at) == AT_OK)
-		{
-			AT_config_Wait_Response(at, "OK", 1500);
-			if(AT_check_Wait_Response_Blocking(at) == AT_OK)
-				return CMD_OK;
-		}
-
-	}
-	return CMD_ERROR;
-}
 
 CMD_Status A7670_MQTT_CMD_Payload(AT_INFO *at, MQTT *mqtt)
 {
