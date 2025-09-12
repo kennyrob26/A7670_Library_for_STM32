@@ -6,8 +6,17 @@
  */
 #include "A7670_Commands_MQTT.h"
 
-CMD_Status A7670_MQTT_Config_MQTT(AT_INFO *at, MQTT *mqtt)
+MQTT mqtt;
+
+CMD_Status A7670_MQTT_Config_MQTT(AT_INFO *at, uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS)
 {
+	mqtt.client.id 	 = client_id;
+	strcpy(mqtt.client.name, client_name);
+	strcpy(mqtt.broker.adress, broker_adress);
+	mqtt.broker.kepp_alive = keep_alive;
+	mqtt.broker.clear_session = clear_session;
+	mqtt.message.QoS = QoS;
+
 	MQTT_Connect_State mqtt_state = MQTT_START;
 
 	while(mqtt_state != MQTT_OK)
@@ -25,7 +34,7 @@ CMD_Status A7670_MQTT_Config_MQTT(AT_INFO *at, MQTT *mqtt)
 				}
 			break;
 			case MQTT_ACCQ:
-				if(A7670_MQTT_CMD_Acquire_Client(at, mqtt))
+				if(A7670_MQTT_CMD_Acquire_Client(at, &mqtt))
 				{
 					mqtt_state = MQTT_CONNECT;
 				}
@@ -35,7 +44,7 @@ CMD_Status A7670_MQTT_Config_MQTT(AT_INFO *at, MQTT *mqtt)
 				}
 			break;
 			case MQTT_CONNECT:
-				if(A7670_MQTT_CMD_Connect(at, mqtt))
+				if(A7670_MQTT_CMD_Connect(at, &mqtt))
 				{
 					mqtt_state = MQTT_OK;
 				}
@@ -52,6 +61,47 @@ CMD_Status A7670_MQTT_Config_MQTT(AT_INFO *at, MQTT *mqtt)
 
 		}
 	}
+}
+
+CMD_Status A7670_MQTT_Publish_Message(AT_INFO *at, char* topic, char* message_payload)
+{
+
+	strcpy(mqtt.message.topic, topic);
+	strcpy(mqtt.message.payload, message_payload);
+
+	Publish_Message_state pub_msg_state = MSG_SET_TOPIC;
+
+	while(pub_msg_state != MSG_OK)
+	{
+		switch (pub_msg_state) {
+			case MSG_SET_TOPIC:
+				if(A7670_MQTT_CMD_Pub_Topic(at, &mqtt) == CMD_OK)
+					pub_msg_state = MSG_SET_PAYLOAD;
+				else
+					pub_msg_state = MSG_RESET_MODULE;
+			break;
+			case MSG_SET_PAYLOAD:
+				if(A7670_MQTT_CMD_Payload(at, &mqtt) == CMD_OK)
+					pub_msg_state = MSG_PUBLISH;
+				else
+					pub_msg_state = MSG_RESET_MODULE;
+			break;
+			case MSG_PUBLISH:
+				if(A7670_MQTT_CMD_Publish(at, &mqtt) == CMD_OK)
+					pub_msg_state = MSG_OK;
+				else
+					pub_msg_state = MSG_RESET_MODULE;
+			break;
+			case MSG_RESET_MODULE:
+				return CMD_ERROR;
+			default:
+				return CMD_ERROR;
+				break;
+		}
+	}
+
+	return CMD_OK;
+
 }
 
 CMD_Status A7670_MQTT_CMD_Start(AT_INFO *at)
@@ -89,42 +139,7 @@ CMD_Status A7670_MQTT_CMD_Connect(AT_INFO *at, MQTT *mqtt)
 }
 
 
-CMD_Status A7670_MQTT_Publish_Message(AT_INFO *at, MQTT *mqtt)
-{
-	Publish_Message_state pub_msg_state = MSG_SET_TOPIC;
 
-	while(pub_msg_state != MSG_OK)
-	{
-		switch (pub_msg_state) {
-			case MSG_SET_TOPIC:
-				if(A7670_MQTT_CMD_Pub_Topic(at, mqtt) == CMD_OK)
-					pub_msg_state = MSG_SET_PAYLOAD;
-				else
-					pub_msg_state = MSG_RESET_MODULE;
-			break;
-			case MSG_SET_PAYLOAD:
-				if(A7670_MQTT_CMD_Payload(at, mqtt) == CMD_OK)
-					pub_msg_state = MSG_PUBLISH;
-				else
-					pub_msg_state = MSG_RESET_MODULE;
-			break;
-			case MSG_PUBLISH:
-				if(A7670_MQTT_CMD_Publish(at, mqtt) == CMD_OK)
-					pub_msg_state = MSG_OK;
-				else
-					pub_msg_state = MSG_RESET_MODULE;
-			break;
-			case MSG_RESET_MODULE:
-				return CMD_ERROR;
-			default:
-				return CMD_ERROR;
-				break;
-		}
-	}
-
-	return CMD_OK;
-
-}
 
 CMD_Status A7670_MQTT_CMD_Pub_Topic(AT_INFO *at, MQTT *mqtt)
 {
