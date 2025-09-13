@@ -18,22 +18,20 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	{
 		at.response_buffer[Size] = '\0';
 		at.existMessage = 1;
-		HAL_UARTEx_ReceiveToIdle_DMA(at.huart, (uint8_t*)at.response_buffer, TAMANHO_MENSAGEM);
+		HAL_UARTEx_ReceiveToIdle_DMA(at.huart, (uint8_t*)at.response_buffer, BUFFER_LENGTH);
 	}
 
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
-    if (huart == at.huart) // ajuste para sua UART
+    if (huart == at.huart)
     {
-        // Limpa flags de erro
         __HAL_UART_CLEAR_FEFLAG(at.huart);
         __HAL_UART_CLEAR_NEFLAG(at.huart);
         __HAL_UART_CLEAR_OREFLAG(at.huart);
 
-        // Reinicia o DMA
-        HAL_UARTEx_ReceiveToIdle_DMA(at.huart, (uint8_t*)at.response_buffer, TAMANHO_MENSAGEM);
+        HAL_UARTEx_ReceiveToIdle_DMA(at.huart, (uint8_t*)at.response_buffer, BUFFER_LENGTH);
     }
 }
 
@@ -43,7 +41,7 @@ AT_Status AT_defineUART(UART_HandleTypeDef *huartx)
 	at.huart = huartx;
 	if(at.huart != NULL)
 	{
-		HAL_UARTEx_ReceiveToIdle_DMA(huartx, (uint8_t*)at.response_buffer, TAMANHO_MENSAGEM);
+		HAL_UARTEx_ReceiveToIdle_DMA(huartx, (uint8_t*)at.response_buffer, BUFFER_LENGTH);
 		return AT_OK;
 	}
 	else

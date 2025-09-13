@@ -21,7 +21,7 @@
 
 
 
-#define TAMANHO_MENSAGEM 100
+#define BUFFER_LENGTH 100
 #define TIMEOUT 50
 
 typedef enum
@@ -44,7 +44,7 @@ typedef struct AT_INFO
 {
 	UART_HandleTypeDef *huart;
 	char at_command[50];
-	volatile uint8_t response_buffer[TAMANHO_MENSAGEM];
+	volatile uint8_t response_buffer[BUFFER_LENGTH];
     char *echo;
     char *response;
     char *OK;
