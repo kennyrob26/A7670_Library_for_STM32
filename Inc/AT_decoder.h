@@ -53,16 +53,19 @@ typedef struct AT_INFO
     AT_Wait_Response wait_response;
 }AT_INFO;
 
+extern AT_INFO at;
 
 
-AT_Status AT_defineUART(AT_INFO *at, UART_HandleTypeDef *huartx);
-AT_Status AT_processCommand(AT_INFO *at);
-AT_Status AT_config_Wait_Response(AT_INFO *at, const char *expected_response, uint32_t timeout);
-AT_Status AT_check_Wait_Response(AT_INFO *at);
-AT_Status AT_check_Wait_Response_Blocking(AT_INFO *at);
-AT_Status AT_sendText(AT_INFO *at);
-AT_Status AT_sendCommand(AT_INFO *at);
-AT_Status AT_responseCommand(AT_INFO *at);
+//void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size);
+//void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);
+
+AT_Status AT_defineUART(UART_HandleTypeDef *huartx);
+AT_Status AT_processCommand();
+AT_Status AT_config_Wait_Response(const char *expected_response, uint32_t timeout);
+AT_Status AT_check_Wait_Response();
+AT_Status AT_check_Wait_Response_Blocking();
+AT_Status AT_sendCommand();
+AT_Status AT_responseCommand();
 
 
 

@@ -51,18 +51,17 @@ typedef struct GNSS
 
 }GNSS;
 
-
-
-CMD_Status A7670_CMD_Creset(AT_INFO *at);
-CMD_Status A7670_GPS_Init(AT_INFO *at);
-CMD_Status A7670_GPS_CMD_CGNSSPWR(AT_INFO *at);
-CMD_Status A7670_GPS_CMD_CAGPS(AT_INFO *at);
-CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH(AT_INFO *at);
-CMD_Status A7670_GPS_CMD_CGPSINFO(AT_INFO *at);
+CMD_Status A7670_CMD_Creset();
+CMD_Status A7670_GPS_Init();
+CMD_Status A7670_GPS_CMD_CGNSSPWR();
+CMD_Status A7670_GPS_CMD_CAGPS();
+CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH();
+CMD_Status A7670_GPS_CMD_CGPSINFO();
 void readNEMA(char *dataNEMA);
 void nextValueNema(char **value, char *previous_value);
 void convertNemaToGNSS(GNSS *gnss, NEMA nema);
 float calculateLatitude(char *latitude_nema, char *N_or_S);
 float calculateLongitude(char *longitude_nema, char *E_or_W);
+
 
 #endif /* INC_A7670_AT_COMMANDS_H_ */

@@ -8,7 +8,9 @@
 
 MQTT mqtt;
 
-CMD_Status A7670_MQTT_Config_MQTT(AT_INFO *at, uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS)
+
+
+CMD_Status A7670_MQTT_Config_MQTT(uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS)
 {
 	mqtt.client.id 	 = client_id;
 	strcpy(mqtt.client.name, client_name);
@@ -24,7 +26,7 @@ CMD_Status A7670_MQTT_Config_MQTT(AT_INFO *at, uint8_t client_id, char *client_n
 		switch (mqtt_state)
 		{
 			case MQTT_START:
-				if(A7670_MQTT_CMD_Start(at) == CMD_OK)
+				if(A7670_MQTT_CMD_Start() == CMD_OK)
 				{
 					mqtt_state = MQTT_ACCQ;
 				}
@@ -34,7 +36,7 @@ CMD_Status A7670_MQTT_Config_MQTT(AT_INFO *at, uint8_t client_id, char *client_n
 				}
 			break;
 			case MQTT_ACCQ:
-				if(A7670_MQTT_CMD_Acquire_Client(at, &mqtt))
+				if(A7670_MQTT_CMD_Acquire_Client(&mqtt))
 				{
 					mqtt_state = MQTT_CONNECT;
 				}
@@ -44,7 +46,7 @@ CMD_Status A7670_MQTT_Config_MQTT(AT_INFO *at, uint8_t client_id, char *client_n
 				}
 			break;
 			case MQTT_CONNECT:
-				if(A7670_MQTT_CMD_Connect(at, &mqtt))
+				if(A7670_MQTT_CMD_Connect(&mqtt))
 				{
 					mqtt_state = MQTT_OK;
 				}
@@ -63,7 +65,7 @@ CMD_Status A7670_MQTT_Config_MQTT(AT_INFO *at, uint8_t client_id, char *client_n
 	}
 }
 
-CMD_Status A7670_MQTT_Publish_Message(AT_INFO *at, char* topic, char* message_payload)
+CMD_Status A7670_MQTT_Publish_Message(char* topic, char* message_payload)
 {
 
 	strcpy(mqtt.message.topic, topic);
@@ -75,19 +77,19 @@ CMD_Status A7670_MQTT_Publish_Message(AT_INFO *at, char* topic, char* message_pa
 	{
 		switch (pub_msg_state) {
 			case MSG_SET_TOPIC:
-				if(A7670_MQTT_CMD_Pub_Topic(at, &mqtt) == CMD_OK)
+				if(A7670_MQTT_CMD_Pub_Topic(&mqtt) == CMD_OK)
 					pub_msg_state = MSG_SET_PAYLOAD;
 				else
 					pub_msg_state = MSG_RESET_MODULE;
 			break;
 			case MSG_SET_PAYLOAD:
-				if(A7670_MQTT_CMD_Payload(at, &mqtt) == CMD_OK)
+				if(A7670_MQTT_CMD_Payload(&mqtt) == CMD_OK)
 					pub_msg_state = MSG_PUBLISH;
 				else
 					pub_msg_state = MSG_RESET_MODULE;
 			break;
 			case MSG_PUBLISH:
-				if(A7670_MQTT_CMD_Publish(at, &mqtt) == CMD_OK)
+				if(A7670_MQTT_CMD_Publish(&mqtt) == CMD_OK)
 					pub_msg_state = MSG_OK;
 				else
 					pub_msg_state = MSG_RESET_MODULE;
@@ -104,35 +106,35 @@ CMD_Status A7670_MQTT_Publish_Message(AT_INFO *at, char* topic, char* message_pa
 
 }
 
-CMD_Status A7670_MQTT_CMD_Start(AT_INFO *at)
+CMD_Status A7670_MQTT_CMD_Start()
 {
-	strcpy(at->at_command, "AT+CMQTTSTART");
-	if(AT_sendCommand(at) == AT_OK)
+	strcpy(at.at_command, "AT+CMQTTSTART");
+	if(AT_sendCommand() == AT_OK)
 	{
-		AT_config_Wait_Response(at, "CMQTTSTART: 0", 9000);
-		if(AT_check_Wait_Response_Blocking(at) == AT_OK)
+		AT_config_Wait_Response("CMQTTSTART: 0", 9000);
+		if(AT_check_Wait_Response_Blocking() == AT_OK)
 			return CMD_OK;
 	}
 	return CMD_ERROR;
 }
-CMD_Status A7670_MQTT_CMD_Acquire_Client(AT_INFO *at, MQTT *mqtt)
+CMD_Status A7670_MQTT_CMD_Acquire_Client(MQTT *mqtt)
 {
-	sprintf(at->at_command, "%s%d,\"%s\"", "AT+CMQTTACCQ=", mqtt->client.id, mqtt->client.name);
-	if(AT_sendCommand(at) ==  AT_OK)
+	sprintf(at.at_command, "%s%d,\"%s\"", "AT+CMQTTACCQ=", mqtt->client.id, mqtt->client.name);
+	if(AT_sendCommand() ==  AT_OK)
 	{
-		AT_config_Wait_Response(at, "OK", 5000);
-		if(AT_check_Wait_Response_Blocking(at) == AT_OK)
+		AT_config_Wait_Response("OK", 5000);
+		if(AT_check_Wait_Response_Blocking() == AT_OK)
 			return CMD_OK;
 	}
 	return CMD_ERROR;
 }
-CMD_Status A7670_MQTT_CMD_Connect(AT_INFO *at, MQTT *mqtt)
+CMD_Status A7670_MQTT_CMD_Connect(MQTT *mqtt)
 {
-	sprintf(at->at_command, "%s%d,\"%s\",%d,%d", "AT+CMQTTCONNECT=", mqtt->client.id, mqtt->broker.adress, mqtt->broker.kepp_alive, mqtt->broker.clear_session);
-	if(AT_sendCommand(at) == AT_OK)
+	sprintf(at.at_command, "%s%d,\"%s\",%d,%d", "AT+CMQTTCONNECT=", mqtt->client.id, mqtt->broker.adress, mqtt->broker.kepp_alive, mqtt->broker.clear_session);
+	if(AT_sendCommand() == AT_OK)
 	{
-		AT_config_Wait_Response(at, "CMQTTCONNECT: 0,0", 5000);
-		if(AT_check_Wait_Response_Blocking(at) == AT_OK)
+		AT_config_Wait_Response("CMQTTCONNECT: 0,0", 5000);
+		if(AT_check_Wait_Response_Blocking() == AT_OK)
 			return CMD_OK;
 	}
 	return CMD_ERROR;
@@ -141,18 +143,18 @@ CMD_Status A7670_MQTT_CMD_Connect(AT_INFO *at, MQTT *mqtt)
 
 
 
-CMD_Status A7670_MQTT_CMD_Pub_Topic(AT_INFO *at, MQTT *mqtt)
+CMD_Status A7670_MQTT_CMD_Pub_Topic(MQTT *mqtt)
 {
 	uint8_t topic_length   = strlen(mqtt->message.topic);
-	sprintf(at->at_command, "%s%d,%d", "AT+CMQTTTOPIC=", mqtt->client.id, topic_length);
-	if(AT_sendCommand(at) == AT_OK)
+	sprintf(at.at_command, "%s%d,%d", "AT+CMQTTTOPIC=", mqtt->client.id, topic_length);
+	if(AT_sendCommand() == AT_OK)
 	{
 		HAL_Delay(50);
-		strcpy(at->at_command, mqtt->message.topic);
-		if(AT_sendCommand(at) == AT_OK)
+		strcpy(at.at_command, mqtt->message.topic);
+		if(AT_sendCommand() == AT_OK)
 		{
-			AT_config_Wait_Response(at, "OK", 1500);
-			if(AT_check_Wait_Response_Blocking(at) == AT_OK)
+			AT_config_Wait_Response("OK", 1500);
+			if(AT_check_Wait_Response_Blocking() == AT_OK)
 				return CMD_OK;
 		}
 
@@ -162,18 +164,18 @@ CMD_Status A7670_MQTT_CMD_Pub_Topic(AT_INFO *at, MQTT *mqtt)
 }
 
 
-CMD_Status A7670_MQTT_CMD_Payload(AT_INFO *at, MQTT *mqtt)
+CMD_Status A7670_MQTT_CMD_Payload(MQTT *mqtt)
 {
 	uint8_t payload_length = strlen(mqtt->message.payload);
-	sprintf(at->at_command, "%s%d,%d", "AT+CMQTTPAYLOAD=", mqtt->client.id, payload_length);
-	if(AT_sendCommand(at) == AT_OK)
+	sprintf(at.at_command, "%s%d,%d", "AT+CMQTTPAYLOAD=", mqtt->client.id, payload_length);
+	if(AT_sendCommand() == AT_OK)
 	{
 		HAL_Delay(50);
-		strcpy(at->at_command, mqtt->message.payload);
-		if(AT_sendCommand(at) == AT_OK)
+		strcpy(at.at_command, mqtt->message.payload);
+		if(AT_sendCommand() == AT_OK)
 		{
-			AT_config_Wait_Response(at, "OK", 1500);
-			if(AT_check_Wait_Response_Blocking(at) == AT_OK)
+			AT_config_Wait_Response("OK", 1500);
+			if(AT_check_Wait_Response_Blocking() == AT_OK)
 				return CMD_OK;
 		}
 
@@ -181,14 +183,14 @@ CMD_Status A7670_MQTT_CMD_Payload(AT_INFO *at, MQTT *mqtt)
 	return CMD_ERROR;
 }
 
-CMD_Status A7670_MQTT_CMD_Publish(AT_INFO *at, MQTT *mqtt)
+CMD_Status A7670_MQTT_CMD_Publish(MQTT *mqtt)
 {
 	//strcpy(at->at_command, "AT+CMQTTPUB=0,1,60");
-	sprintf(at->at_command, "%s%d,%d,%d", "AT+CMQTTPUB=", mqtt->client.id, mqtt->message.QoS, mqtt->broker.kepp_alive);
-	if(AT_sendCommand(at) == AT_OK)
+	sprintf(at.at_command, "%s%d,%d,%d", "AT+CMQTTPUB=", mqtt->client.id, mqtt->message.QoS, mqtt->broker.kepp_alive);
+	if(AT_sendCommand() == AT_OK)
 	{
-		AT_config_Wait_Response(at, "CMQTTPUB: 0,0", 1500);
-		if(AT_check_Wait_Response_Blocking(at) == AT_OK)
+		AT_config_Wait_Response("CMQTTPUB: 0,0", 1500);
+		if(AT_check_Wait_Response_Blocking() == AT_OK)
 			return CMD_OK;
 	}
 	return CMD_ERROR;

@@ -11,18 +11,23 @@ NEMA nema;
 GNSS gnss;
 
 
-CMD_Status A7670_CMD_Creset(AT_INFO *at)
+CMD_Status A7670_CMD_Creset()
 {
-	strcpy(at->at_command, "AT+CRESET");
+	strcpy(at.at_command, "AT+CRESET");
 
-	if(AT_processCommand(at) == AT_OK)
+	if(AT_sendCommand() == AT_OK)
 	{
-		return CMD_OK;
+		AT_config_Wait_Response("PB DONE", 15000);
+		if(AT_check_Wait_Response_Blocking() == AT_OK)
+		{
+			return CMD_OK;
+		}
+
 	}
-	else
-		return CMD_ERROR;
+	return CMD_ERROR;
+
 }
-CMD_Status A7670_GPS_Init(AT_INFO *at)
+CMD_Status A7670_GPS_Init()
 {
 	Connect_GNSS_state gnss_state = GNSS_PWR;
 	uint8_t attemps = 0;
@@ -31,7 +36,7 @@ CMD_Status A7670_GPS_Init(AT_INFO *at)
 	{
 		switch (gnss_state) {
 			case GNSS_PWR:
-				if(A7670_GPS_CMD_CGNSSPWR(at) == CMD_OK && attemps < max_attemps)
+				if(A7670_GPS_CMD_CGNSSPWR() == CMD_OK && attemps < max_attemps)
 				{
 					gnss_state = GNSS_CAGPS;
 					attemps = 0;
@@ -47,11 +52,11 @@ CMD_Status A7670_GPS_Init(AT_INFO *at)
 				}
 			break;
 			case GNSS_CAGPS:
-				A7670_GPS_CMD_CAGPS(at);
+				A7670_GPS_CMD_CAGPS();
 				gnss_state = GNSS_PORTSWITCH;
 			break;
 			case GNSS_PORTSWITCH:
-				if(A7670_GPS_CMD_CGNSSPORTSWITCH(at) == CMD_OK && attemps < max_attemps)
+				if(A7670_GPS_CMD_CGNSSPORTSWITCH() == CMD_OK && attemps < max_attemps)
 				{
 					gnss_state = GNSS_OK;
 					attemps = 0;
@@ -74,47 +79,47 @@ CMD_Status A7670_GPS_Init(AT_INFO *at)
 	return CMD_OK;
 }
 
-CMD_Status A7670_GPS_CMD_CGNSSPWR(AT_INFO *at)
+CMD_Status A7670_GPS_CMD_CGNSSPWR()
 {
-	strcpy(at->at_command, "AT+CGNSSPWR=1");
+	strcpy(at.at_command, "AT+CGNSSPWR=1");
 
-	if(AT_sendCommand(at) == AT_OK)
+	if(AT_sendCommand() == AT_OK)
 	{
-		AT_config_Wait_Response(at, "READY!", 15000);
-		if(AT_check_Wait_Response_Blocking(at) == AT_OK)
+		AT_config_Wait_Response("READY!", 15000);
+		if(AT_check_Wait_Response_Blocking() == AT_OK)
 			return CMD_OK;
 	}
 
 	return CMD_ERROR;
 }
 
-CMD_Status A7670_GPS_CMD_CAGPS(AT_INFO *at)
+CMD_Status A7670_GPS_CMD_CAGPS()
 {
-	strcpy(at->at_command, "AT+CAGPS");
-	if(AT_processCommand(at) == AT_OK)
+	strcpy(at.at_command, "AT+CAGPS");
+	if(AT_processCommand() == AT_OK)
 	{
-		AT_config_Wait_Response(at, "success", 5000);
-		if(AT_check_Wait_Response_Blocking(at) == AT_OK)
+		AT_config_Wait_Response("success", 5000);
+		if(AT_check_Wait_Response_Blocking() == AT_OK)
 			return CMD_OK;
 	}
 	return CMD_ERROR;
 }
 
-CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH(AT_INFO *at)
+CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH()
 {
-	strcpy(at->at_command, "AT+CGNSSPORTSWITCH=1,1");
-	if (AT_processCommand(at))
+	strcpy(at.at_command, "AT+CGNSSPORTSWITCH=1,1");
+	if (AT_processCommand())
 		return CMD_OK;
 
 	return CMD_ERROR;
 }
-CMD_Status A7670_GPS_CMD_CGPSINFO(AT_INFO *at)
+CMD_Status A7670_GPS_CMD_CGPSINFO()
 {
-	strcpy(at->at_command, "AT+CGPSINFO");
+	strcpy(at.at_command, "AT+CGPSINFO");
 
-	if(AT_processCommand(at) == AT_OK)
+	if(AT_processCommand() == AT_OK)
 	{
-		readNEMA(at->response);
+		readNEMA(at.response);
 		return CMD_OK;
 	}
 	return CMD_ERROR;
@@ -210,3 +215,5 @@ float calculateLongitude(char *longitude_nema, char *E_or_W)
     }
     return(0);
 }
+
+

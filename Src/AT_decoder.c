@@ -7,32 +7,60 @@
 
 #include "AT_decoder.h"
 
-AT_Status existNewMessage(AT_INFO *at);
-AT_Status processMessage(AT_INFO *at);
+AT_INFO at;
 
+AT_Status existNewMessage();
+AT_Status processMessage();
 
-
-AT_Status AT_defineUART(AT_INFO *at, UART_HandleTypeDef *huartx)
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
-	at->huart = huartx;
-	if(at->huart != NULL)
+	if (huart == at.huart)
+	{
+		at.response_buffer[Size] = '\0';
+		at.existMessage = 1;
+		HAL_UARTEx_ReceiveToIdle_DMA(at.huart, (uint8_t*)at.response_buffer, TAMANHO_MENSAGEM);
+	}
+
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+    if (huart == at.huart) // ajuste para sua UART
+    {
+        // Limpa flags de erro
+        __HAL_UART_CLEAR_FEFLAG(at.huart);
+        __HAL_UART_CLEAR_NEFLAG(at.huart);
+        __HAL_UART_CLEAR_OREFLAG(at.huart);
+
+        // Reinicia o DMA
+        HAL_UARTEx_ReceiveToIdle_DMA(at.huart, (uint8_t*)at.response_buffer, TAMANHO_MENSAGEM);
+    }
+}
+
+
+AT_Status AT_defineUART(UART_HandleTypeDef *huartx)
+{
+	at.huart = huartx;
+	if(at.huart != NULL)
+	{
+		HAL_UARTEx_ReceiveToIdle_DMA(huartx, (uint8_t*)at.response_buffer, TAMANHO_MENSAGEM);
 		return AT_OK;
+	}
 	else
 		return AT_ERROR;
 }
 
 
-AT_Status AT_processCommand(AT_INFO *at)
+AT_Status AT_processCommand()
 {
-	at->existMessage = 0;
-	if (AT_sendCommand(at) == AT_OK)
+	at.existMessage = 0;
+	if (AT_sendCommand() == AT_OK)
 	{
-		if (AT_responseCommand(at) == AT_OK)
+		if (AT_responseCommand() == AT_OK)
 		{
-			if(at->echo != NULL)
+			if(at.echo != NULL)
 			{
-				//if(strncmp(at->echo, at->at_command, strlen(at->echo)) == 0)
-				if(strstr(at->echo, at->at_command))
+				if(strstr(at.echo, at.at_command))
 					return AT_OK;
 				else
 					return AT_ERROR;
@@ -44,51 +72,51 @@ AT_Status AT_processCommand(AT_INFO *at)
 	return AT_ERROR;
 }
 
-AT_Status AT_config_Wait_Response(AT_INFO *at, const char *expected_response, uint32_t timeout)
+AT_Status AT_config_Wait_Response(const char *expected_response, uint32_t timeout)
 {
-	at->wait_response.start_tick = HAL_GetTick();
-	at->wait_response.timeout = timeout;
-	strcpy(at->wait_response.expected_response, expected_response);
-	at->wait_response.waiting_status = 1;
+	at.wait_response.start_tick = HAL_GetTick();
+	at.wait_response.timeout = timeout;
+	strcpy(at.wait_response.expected_response, expected_response);
+	at.wait_response.waiting_status = 1;
 
 	return AT_OK;
 }
 
-AT_Status AT_check_Wait_Response(AT_INFO *at)
+AT_Status AT_check_Wait_Response()
 {
-	if(at->wait_response.waiting_status == 0)
+	if(at.wait_response.waiting_status == 0)
 		return AT_ERROR;
 
-	if(at->existMessage == 1)
+	if(at.existMessage == 1)
 	{
-		if(strstr((char*)at->response_buffer, at->wait_response.expected_response) != NULL)			//Significa que a mensagem contém o Token procurado
+		if(strstr((char*)at.response_buffer, at.wait_response.expected_response) != NULL)			//Significa que a mensagem contém o Token procurado
 		{
-			at->existMessage = 0;
-			at->wait_response.waiting_status = 0;
+			at.existMessage = 0;
+			at.wait_response.waiting_status = 0;
 			return AT_OK;
 		}
 		else
 		{
-			at->existMessage = 0;
+			at.existMessage = 0;
 		}
 	}
 
-	if((HAL_GetTick() - at->wait_response.start_tick) > at->wait_response.timeout)
+	if((HAL_GetTick() - at.wait_response.start_tick) > at.wait_response.timeout)
 	{
-		at->wait_response.waiting_status = 0;
+		at.wait_response.waiting_status = 0;
 		return AT_TIMEOUT;
 	}
 
 	return AT_WAITING;
 }
 
-AT_Status AT_check_Wait_Response_Blocking(AT_INFO *at)
+AT_Status AT_check_Wait_Response_Blocking()
 {
 	uint8_t check_wait_response = AT_WAITING;
 
 	while(check_wait_response == AT_WAITING)
 	{
-		check_wait_response = AT_check_Wait_Response(at);
+		check_wait_response = AT_check_Wait_Response();
 	}
 
 	if(check_wait_response == AT_OK)
@@ -99,37 +127,27 @@ AT_Status AT_check_Wait_Response_Blocking(AT_INFO *at)
 		return AT_ERROR;
 }
 
-AT_Status AT_sendCommand(AT_INFO *at)
+AT_Status AT_sendCommand()
 {
-	uint8_t length = strlen(at->at_command);
+	uint8_t length = strlen(at.at_command);
 
-	at->at_command[length]     = '\r';
-	at->at_command[length + 1] = '\0';
+	at.at_command[length]     = '\r';
+	at.at_command[length + 1] = '\0';
 
-	if(HAL_UART_Transmit(at->huart, (uint8_t*)at->at_command, length+1, 100) == HAL_OK)
+	if(HAL_UART_Transmit(at.huart, (uint8_t*)at.at_command, length+1, 100) == HAL_OK)
 	{
 		  return AT_OK;
 	}
 	return AT_ERROR;
 }
 
-AT_Status AT_sendText(AT_INFO *at)
+
+
+AT_Status AT_responseCommand()
 {
-	uint8_t length = strlen(at->at_command);
-	if(HAL_UART_Transmit(at->huart, (uint8_t*)at->at_command, length, 100) == HAL_OK)
+	if(existNewMessage() == AT_OK)
 	{
-		 return AT_OK;
-	}
-	return AT_ERROR;
-}
-
-
-
-AT_Status AT_responseCommand(AT_INFO *at)
-{
-	if(existNewMessage(at) == AT_OK)
-	{
-		if(processMessage(at) == AT_OK)
+		if(processMessage() == AT_OK)
 			return AT_OK;
 		else
 			return AT_ERROR;
@@ -138,65 +156,65 @@ AT_Status AT_responseCommand(AT_INFO *at)
 		return AT_ERROR;
 
 }
-AT_Status existNewMessage(AT_INFO *at)
+AT_Status existNewMessage()
 {
 	uint32_t tempo = HAL_GetTick();
 	uint32_t tempo_inicio = tempo;
-	while(at->existMessage != 1 && (tempo - tempo_inicio) < TIMEOUT)
+	while(at.existMessage != 1 && (tempo - tempo_inicio) < TIMEOUT)
 	{
 		tempo = HAL_GetTick();
 	}
 
-	if(at->existMessage == 1)
+	if(at.existMessage == 1)
 		return AT_OK;
 	else
 		return AT_ERROR;
 
 }
 
-AT_Status processMessage(AT_INFO *at)
+AT_Status processMessage()
 {
-	at->existMessage = 0;
+	at.existMessage = 0;
 
-	if(strlen((char*)at->response_buffer) == 0)
+	if(strlen((char*)at.response_buffer) == 0)
 		return AT_ERROR;
 
-	if(strncmp((char*)at->response_buffer, "AT", 2) == 0)
+	if(strncmp((char*)at.response_buffer, "AT", 2) == 0)
 	{
-		at->echo = strtok(at->response_buffer, "\r\r\n");
-		if(at->echo == NULL)
+		at.echo = strtok(at.response_buffer, "\r\r\n");
+		if(at.echo == NULL)
 		{
-			at->status = 0;
+			at.status = 0;
 			return AT_ERROR;
 		}
 
-		at->response = strtok(NULL, "\r\n");
-		if(at->response != NULL)
+		at.response = strtok(NULL, "\r\n");
+		if(at.response != NULL)
 		{
-			if(!strcmp(at->response, "OK"))
+			if(!strcmp(at.response, "OK"))
 			{
-				at->OK = at->response;
-				at->status = 1;
+				at.OK = at.response;
+				at.status = 1;
 				return AT_OK;
 			}
-			else if(!strcmp(at->response, "ERROR"))
+			else if(!strcmp(at.response, "ERROR"))
 			{
-				at->OK = at->response;
-				at->status = 0;
+				at.OK = at.response;
+				at.status = 0;
 				return AT_ERROR;
 			}
 			else
 			{
-				at->OK = strtok(NULL, "\r\n");
-				at->status = 1;
+				at.OK = strtok(NULL, "\r\n");
+				at.status = 1;
 				return AT_OK;
 			}
 		}
 	}
 	else
 	{
-		at->echo = NULL;
-		strcpy((char*)at->response, at->response_buffer);
+		at.echo = NULL;
+		strcpy((char*)at.response, at.response_buffer);
 
 		return AT_OK;
 	}

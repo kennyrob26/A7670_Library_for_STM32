@@ -62,12 +62,14 @@ typedef enum
 
 }MQTT_Connect_State;
 
-CMD_Status A7670_MQTT_Config_MQTT(AT_INFO *at, uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS);
-CMD_Status A7670_MQTT_Publish_Message(AT_INFO *at, char* topic, char* message_payload);
-CMD_Status A7670_MQTT_CMD_Start(AT_INFO *at);
-CMD_Status A7670_MQTT_CMD_Acquire_Client(AT_INFO *at, MQTT *mqtt);
-CMD_Status A7670_MQTT_CMD_Connect(AT_INFO *at, MQTT *mqtt);
-CMD_Status A7670_MQTT_CMD_Pub_Topic(AT_INFO *at, MQTT *mqtt);
-CMD_Status A7670_MQTT_CMD_Payload(AT_INFO *at, MQTT *mqtt);
-CMD_Status A7670_MQTT_CMD_Publish(AT_INFO *at, MQTT *mqtt);
+
+CMD_Status A7670_MQTT_Config_MQTT( uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS);
+CMD_Status A7670_MQTT_Publish_Message( char* topic, char* message_payload);
+CMD_Status A7670_MQTT_CMD_Start();
+CMD_Status A7670_MQTT_CMD_Acquire_Client( MQTT *mqtt);
+CMD_Status A7670_MQTT_CMD_Connect( MQTT *mqtt);
+CMD_Status A7670_MQTT_CMD_Pub_Topic( MQTT *mqtt);
+CMD_Status A7670_MQTT_CMD_Payload( MQTT *mqtt);
+CMD_Status A7670_MQTT_CMD_Publish( MQTT *mqtt);
+
 #endif /* INC_A7670_LIBRARY_FOR_STM32_A7670_COMMANDS_MQTT_H_ */
