@@ -8,9 +8,9 @@
 #include "AT_decoder.h"
 
 AT_INFO at;
-
-AT_Status existNewMessage();
-AT_Status processMessage();
+MQTT_RESPONSE mqtt_resp;
+AT_Status processAtCommand();
+AT_Status mqtt_response();
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
@@ -143,9 +143,9 @@ AT_Status AT_sendCommand()
 
 AT_Status AT_responseCommand()
 {
-	if(existNewMessage() == AT_OK)
+	if(AT_Exist_New_Message(50) == AT_OK)
 	{
-		if(processMessage() == AT_OK)
+		if(AT_Pocess_Buffer() == AT_OK)
 			return AT_OK;
 		else
 			return AT_ERROR;
@@ -154,73 +154,266 @@ AT_Status AT_responseCommand()
 		return AT_ERROR;
 
 }
-AT_Status existNewMessage()
+AT_Status AT_Exist_New_Message(uint16_t timeout)
 {
-	uint32_t tempo = HAL_GetTick();
-	uint32_t tempo_inicio = tempo;
-	while(at.existMessage != 1 && (tempo - tempo_inicio) < TIMEOUT)
+	if(timeout > 0)
 	{
-		tempo = HAL_GetTick();
+		uint32_t tempo = HAL_GetTick();
+		uint32_t tempo_inicio = tempo;
+		while(at.existMessage != 1 && (tempo - tempo_inicio) < timeout)
+		{
+			tempo = HAL_GetTick();
+		}
 	}
 
 	if(at.existMessage == 1)
+	{
+		at.existMessage = 0;
 		return AT_OK;
+	}
 	else
 		return AT_ERROR;
 
 }
 
-AT_Status processMessage()
+AT_Status AT_Pocess_Buffer()
 {
-	at.existMessage = 0;
 
-	if(strlen((char*)at.response_buffer) == 0)
-		return AT_ERROR;
+    AT_ResponseType response_type = AT_RT_NULL;
 
-	if(strncmp((char*)at.response_buffer, "AT", 2) == 0)
+    if(strncmp((char*)at.response_buffer, "AT", 2) == 0)
+        response_type = AT_RT_Echo_Command;
+    else if (strncmp((char*)at.response_buffer, "\r\n+CMQTTRXSTART", 15) == 0)
+        response_type = AT_RT_MQTT_Response;
+    else if(strncmp((char*)at.response_buffer, "\r\n", 2) == 0)
+        response_type = AT_RT_Response;
+
+
+	switch (response_type)
 	{
-		at.echo = strtok(at.response_buffer, "\r\r\n");
-		if(at.echo == NULL)
-		{
-			at.status = 0;
-			return AT_ERROR;
-		}
-
-		at.response = strtok(NULL, "\r\n");
-		if(at.response != NULL)
-		{
-			if(!strcmp(at.response, "OK"))
-			{
-				at.OK = at.response;
-				at.status = 1;
-				return AT_OK;
-			}
-			else if(!strcmp(at.response, "ERROR"))
-			{
-				at.OK = at.response;
-				at.status = 0;
-				return AT_ERROR;
-			}
-			else
-			{
-				at.OK = strtok(NULL, "\r\n");
-				at.status = 1;
-				return AT_OK;
-			}
-		}
-	}
-	else
-	{
-		at.echo = NULL;
-		strcpy((char*)at.response, at.response_buffer);
-
+	case AT_RT_Echo_Command:
+		processAtCommand();
 		return AT_OK;
+	break;
+	case AT_RT_MQTT_Response:
+		AT_config_Wait_Response("+CMQTTRXEND: 0", 50);				//waiting for "END" of message
+		if(AT_check_Wait_Response_Blocking() == AT_OK)
+		{
+			strcpy(mqtt_resp.last_message, (const char*)at.response_buffer);
+			mqtt_response();
+			return AT_OK;
+		}
+		else
+			return AT_ERROR;
+	break;
+	case AT_RT_Response:
+		//at.response = at.response_buffer;
+		return AT_OK;
+	break;
+	default:
+		break;
 	}
 
-	return AT_ERROR;
+    return AT_ERROR;
 }
 
+AT_Status processAtCommand()
+{
+
+    at.echo = strtok((char*)at.response_buffer, "\r\r\n");
+    if(at.echo == NULL)
+    {
+        at.status = 0;
+        return AT_ERROR;
+    }
+
+    at.response = strtok(NULL, "\r\n");
+    if(at.response != NULL)
+    {
+        if(!strcmp(at.response, "OK"))
+        {
+            at.OK = at.response;
+            at.status = 1;
+            return AT_OK;
+        }
+        else if(!strcmp(at.response, "ERROR"))
+        {
+            at.OK = at.response;
+            at.status = 0;
+            return AT_ERROR;
+        }
+        else
+        {
+            at.OK = strtok(NULL, "\r\n");
+            at.status = 1;
+            return AT_OK;
+        }
+    }
+
+    return AT_ERROR;
+
+}
+
+AT_Status mqtt_response()
+{
+    uint8_t index = 0;
+    while(mqtt_resp.last_message[index] != '\0')
+    {
+        if(mqtt_resp.last_message[index] == '\r')
+        {
+            mqtt_resp.last_message[index] = '\n';
+        }
+        index++;
+    }
+
+    char *start;
+    char *topic;
+    char *payload;
+    char *end;
+
+    start = strtok((char*)mqtt_resp.last_message, "\n");
+    (void)strtok(NULL, "\n");
+    topic = strtok(NULL, "\n");
+    (void)strtok(NULL, "\n");
+    payload =  strtok(NULL, "\n");
+    end = strtok(NULL, "\n");
+
+    char *ptr;
+    start = strtok(start, " ");
+    if((ptr = strtok(NULL, ",")) != NULL)
+        mqtt_resp.client_id  = atoi(ptr);
+
+    if((ptr = strtok(NULL, ",")) !=NULL)
+        mqtt_resp.topic_lentgth = atoi(ptr);
+
+    if((ptr = strtok(NULL, ",")) !=NULL)
+        mqtt_resp.payload_length = atoi(ptr);
+
+    if(topic != NULL)
+    	strcpy(mqtt_resp.topic, topic);
+
+    if(payload != NULL)
+    	strcpy(mqtt_resp.payload, payload);
+
+    end = strtok(end, " ");
+    if((ptr = strtok(NULL, " ")) != NULL)
+        mqtt_resp.end = atoi(ptr);
+
+    return AT_OK;
+
+}
+
+/*
+AT_Status mqtt_response()
+{
+    char *cli_id;
+    char *topic_len;
+    char *payload_len;
+    char *topic;
+    char *payload;
+    char *end;
+    char *byte0;
+
+    cli_id = strstr((char*)at.response_buffer, " ");
+    if(cli_id != NULL)
+    {
+    	*cli_id ='\0';
+        cli_id++;
+        byte0 = strstr(cli_id, ",");
+        *byte0 = '\0';
+        mqtt_resp.client_id = atoi(cli_id);
+    }
+
+    topic_len = (byte0 + 1);
+    if(topic_len != NULL)
+    {
+        byte0 = strstr(topic_len, ",");
+        *byte0 = '\0';
+        mqtt_resp.topic_lentgth = atoi(topic_len);
+    }
+
+    payload_len = (byte0 + 1);
+    if(payload_len != NULL)
+    {
+        byte0 = strstr(payload_len + 1, "\r");
+        *byte0 = '\0';
+        byte0++;
+        mqtt_resp.payload_length = atoi(payload_len);
+    }
+
+    topic = strstr(byte0, " ");
+    topic = strstr((topic), "\n");
+    if(topic != NULL)
+    {
+        topic++;
+        byte0 = strstr((topic), "\r");
+        *byte0 = '\0';
+        byte0++;
+        strcpy(mqtt_resp.topic,topic);
+    }
+
+    payload = strstr(byte0, " ");
+    payload = strstr(payload, "\n");
+    if(payload != NULL)
+    {
+        payload++;
+        byte0 = strstr(payload, "\r");
+        *byte0 = '\0';
+        strcpy(mqtt_resp.payload, payload);
+    }
+
+    end = strstr((byte0 + 1), " ");
+    if(end != NULL)
+    {
+        end++;
+        byte0 = strstr(end,"\r");
+        *byte0 = '\0';
+        mqtt_resp.end = atoi(end);
+    }
+
+    at.response_buffer[0] = '\0';
+    return AT_OK;
+}
+
+AT_Status mqtt_response()
+{
+
+    char *start;
+    char *topic;
+    char *payload;
+    char *end;
+
+    start = strtok((char*)at.response_buffer, "\r\n");
+    (void)strtok(NULL, "\r\n");
+    topic = strtok(NULL, "\r\n");
+    (void)strtok(NULL, "\r\n");
+    payload =  strtok(NULL, "\r\n");
+    end = strtok(NULL, "\r\n");
+
+    char *ptr;
+    start = strtok(start, " ");
+    if((ptr = strtok(NULL, ",")) != NULL)
+        mqtt_resp.client_id  = atoi(ptr);
+
+    if((ptr = strtok(NULL, ",")) !=NULL)
+        mqtt_resp.topic_lentgth = atoi(ptr);
+
+    if((ptr = strtok(NULL, ",")) !=NULL)
+        mqtt_resp.payload_length = atoi(ptr);
+
+    if(topic != NULL)
+    	mqtt_resp.topic = topic;
+
+    if(payload != NULL)
+    	mqtt_resp.payload = payload;
+
+    end = strtok(end, " ");
+    if((ptr = strtok(NULL, " ")) != NULL)
+        mqtt_resp.end = atoi(ptr);
 
 
+    return AT_OK;
 
+}
 
+*/

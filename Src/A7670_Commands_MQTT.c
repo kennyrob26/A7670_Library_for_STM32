@@ -197,8 +197,47 @@ CMD_Status A7670_MQTT_CMD_Publish(void)
 	return CMD_ERROR;
 }
 
+CMD_Status A7670_MQTT_Subscribe_Topic(char* topic)
+{
+	strcpy(mqtt.message.topic, topic);
+	if(A7670_MQTT_CMD_Sub_Topic() == CMD_OK)
+	{
+		if(A7670_MQTT_CMD_Confirm_sub_topic() == CMD_OK)
+			return CMD_OK;
+	}
+	return CMD_ERROR;
+}
 
+CMD_Status A7670_MQTT_CMD_Sub_Topic(void)
+{
+	uint8_t topic_length = strlen(mqtt.message.topic);
+	sprintf(at.at_command, "%s%d,%d,%d", "AT+CMQTTSUBTOPIC=", mqtt.client.id, topic_length, mqtt.message.QoS);
+	if(AT_sendCommand() == AT_OK)
+	{
+		HAL_Delay(50);
+		strcpy(at.at_command, mqtt.message.topic);
+		if(AT_sendCommand() == AT_OK)
+		{
+			AT_config_Wait_Response("OK", 1500);
+			if(AT_check_Wait_Response_Blocking() == AT_OK)
+				return CMD_OK;
+		}
+	}
+	return CMD_ERROR;
+}
 
+CMD_Status A7670_MQTT_CMD_Confirm_sub_topic(void)
+{
+	strcpy(at.at_command, "AT+CMQTTSUB=0");
+	if(AT_sendCommand() == AT_OK)
+	{
+		AT_config_Wait_Response("CMQTTSUB: 0,0", 1500);
+		if(AT_check_Wait_Response_Blocking() == AT_OK)
+			return CMD_OK;
+	}
+
+	return CMD_ERROR;
+}
 
 
 
