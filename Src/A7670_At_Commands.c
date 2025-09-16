@@ -7,13 +7,9 @@
 
 #include "A7670_At_Commands.h"
 
-
-
-CMD_Status processAtCommand();
-CMD_Status mqtt_response();
-
 MQTT_RESPONSE mqtt_resp;
 
+CMD_Status processAtCommand();
 
 CMD_Status A7670_Pocess_Buffer()
 {
@@ -39,7 +35,7 @@ CMD_Status A7670_Pocess_Buffer()
 		if(AT_check_Wait_Response_Blocking() == AT_OK)
 		{
 			strcpy(mqtt_resp.last_message, (const char*)at.response_buffer);
-			mqtt_response();
+			A7670_MQTT_Process_response();
 			return CMD_OK;
 		}
 		else
@@ -93,54 +89,7 @@ CMD_Status processAtCommand()
 
 }
 
-CMD_Status mqtt_response()
-{
-    uint8_t index = 0;
-    while(mqtt_resp.last_message[index] != '\0')
-    {
-        if(mqtt_resp.last_message[index] == '\r')
-        {
-            mqtt_resp.last_message[index] = '\n';
-        }
-        index++;
-    }
 
-    char *start;
-    char *topic;
-    char *payload;
-    char *end;
-
-    start = strtok((char*)mqtt_resp.last_message, "\n");
-    (void)strtok(NULL, "\n");
-    topic = strtok(NULL, "\n");
-    (void)strtok(NULL, "\n");
-    payload =  strtok(NULL, "\n");
-    end = strtok(NULL, "\n");
-
-    char *ptr;
-    start = strtok(start, " ");
-    if((ptr = strtok(NULL, ",")) != NULL)
-        mqtt_resp.client_id  = atoi(ptr);
-
-    if((ptr = strtok(NULL, ",")) !=NULL)
-        mqtt_resp.topic_lentgth = atoi(ptr);
-
-    if((ptr = strtok(NULL, ",")) !=NULL)
-        mqtt_resp.payload_length = atoi(ptr);
-
-    if(topic != NULL)
-    	strcpy(mqtt_resp.topic, topic);
-
-    if(payload != NULL)
-    	strcpy(mqtt_resp.payload, payload);
-
-    end = strtok(end, " ");
-    if((ptr = strtok(NULL, " ")) != NULL)
-        mqtt_resp.end = atoi(ptr);
-
-    return CMD_OK;
-
-}
 
 
 

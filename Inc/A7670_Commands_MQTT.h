@@ -9,6 +9,7 @@
 #define INC_A7670_LIBRARY_FOR_STM32_A7670_COMMANDS_MQTT_H_
 
 #include "A7670_At_Commands.h"
+#include "A7670_Commands_MQTT.h"
 
 typedef struct MQTT_Client
 {
@@ -63,6 +64,7 @@ typedef enum
 }MQTT_Connect_State;
 
 
+
 CMD_Status A7670_MQTT_Config_MQTT( uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS);
 CMD_Status A7670_MQTT_Publish_Message( char* topic, char* message_payload);
 CMD_Status A7670_MQTT_Subscribe_Topic(char* topic);
@@ -74,6 +76,7 @@ CMD_Status A7670_MQTT_CMD_Payload(void);
 CMD_Status A7670_MQTT_CMD_Publish(void);
 CMD_Status A7670_MQTT_CMD_Sub_Topic(void);
 CMD_Status A7670_MQTT_CMD_Confirm_sub_topic(void);
+CMD_Status A7670_MQTT_Process_response();
 
 
 

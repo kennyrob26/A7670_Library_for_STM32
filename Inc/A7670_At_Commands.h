@@ -37,7 +37,7 @@ typedef struct MQTT_RESPONSE
     uint8_t end;
 }MQTT_RESPONSE;
 
-
+extern MQTT_RESPONSE mqtt_resp;
 
 CMD_Status A7670_Pocess_Buffer();
 
