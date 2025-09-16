@@ -7,15 +7,38 @@
 
 #include "A7670_At_Commands.h"
 
-MQTT_RESPONSE mqtt_resp;
+AT_ResponseType response_type = AT_RT_NULL;
 
+CMD_Status setResponseType();
 CMD_Status processAtCommand();
 
 CMD_Status A7670_Pocess_Buffer()
 {
 
-    AT_ResponseType response_type = AT_RT_NULL;
+	setResponseType();
 
+	switch (response_type)
+	{
+		case AT_RT_Echo_Command:
+			processAtCommand();
+			return CMD_OK;
+		break;
+		case AT_RT_MQTT_Response:
+			A7670_MQTT_Process_response();
+		break;
+		case AT_RT_Response:
+			//at.response = at.response_buffer;
+			return CMD_OK;
+		break;
+		default:
+			break;
+	}
+
+    return AT_ERROR;
+}
+
+CMD_Status setResponseType()
+{
     if(strncmp((char*)at.response_buffer, "AT", 2) == 0)
         response_type = AT_RT_Echo_Command;
     else if (strncmp((char*)at.response_buffer, "\r\n+CMQTTRXSTART", 15) == 0)
@@ -23,33 +46,6 @@ CMD_Status A7670_Pocess_Buffer()
     else if(strncmp((char*)at.response_buffer, "\r\n", 2) == 0)
     	response_type = AT_RT_Response;
 
-
-	switch (response_type)
-	{
-	case AT_RT_Echo_Command:
-		processAtCommand();
-		return CMD_OK;
-	break;
-	case AT_RT_MQTT_Response:
-		AT_config_Wait_Response("+CMQTTRXEND: 0", 50);				//waiting for "END" of message
-		if(AT_check_Wait_Response_Blocking() == AT_OK)
-		{
-			strcpy(mqtt_resp.last_message, (const char*)at.response_buffer);
-			A7670_MQTT_Process_response();
-			return CMD_OK;
-		}
-		else
-			return CMD_ERROR;
-	break;
-	case AT_RT_Response:
-		//at.response = at.response_buffer;
-		return CMD_OK;
-	break;
-	default:
-		break;
-	}
-
-    return AT_ERROR;
 }
 
 CMD_Status processAtCommand()

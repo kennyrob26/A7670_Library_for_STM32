@@ -63,7 +63,23 @@ typedef enum
 
 }MQTT_Connect_State;
 
+typedef struct MQTT_RESPONSE
+{
+	char last_message[BUFFER_LENGTH];
+    uint8_t client_id;
+    char topic[20];
+    uint8_t topic_lentgth;
+    char payload[20];
+    uint8_t payload_length;
+    uint8_t end;
+}MQTT_RESPONSE;
 
+extern MQTT_RESPONSE mqtt_resp;
+
+
+extern void (*MQTT_Callback_Response)(MQTT_RESPONSE mqtt_resp);
+
+CMD_Status A7670_MQTT_Register_Callback_Response(void (*callback_function)(MQTT_RESPONSE mqtt_resp));
 
 CMD_Status A7670_MQTT_Config_MQTT( uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS);
 CMD_Status A7670_MQTT_Publish_Message( char* topic, char* message_payload);
@@ -77,6 +93,7 @@ CMD_Status A7670_MQTT_CMD_Publish(void);
 CMD_Status A7670_MQTT_CMD_Sub_Topic(void);
 CMD_Status A7670_MQTT_CMD_Confirm_sub_topic(void);
 CMD_Status A7670_MQTT_Process_response();
+
 
 
 

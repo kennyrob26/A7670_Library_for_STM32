@@ -26,18 +26,7 @@ typedef enum AT_ResponseType
     AT_RT_NULL          = 3
 }AT_ResponseType;
 
-typedef struct MQTT_RESPONSE
-{
-	char last_message[BUFFER_LENGTH];
-    uint8_t client_id;
-    char topic[20];
-    uint8_t topic_lentgth;
-    char payload[20];
-    uint8_t payload_length;
-    uint8_t end;
-}MQTT_RESPONSE;
 
-extern MQTT_RESPONSE mqtt_resp;
 
 CMD_Status A7670_Pocess_Buffer();
 
