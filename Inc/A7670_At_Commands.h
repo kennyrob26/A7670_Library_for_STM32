@@ -18,6 +18,25 @@ typedef enum
 	CMD_OK    = 1
 } CMD_Status;
 
+typedef enum AT_ResponseType
+{
+    AT_RT_Echo_Command  = 0,
+    AT_RT_Response      = 1,
+    AT_RT_MQTT_Response = 2,
+    AT_RT_NULL          = 3
+}AT_ResponseType;
+
+typedef struct MQTT_RESPONSE
+{
+	char last_message[BUFFER_LENGTH];
+    uint8_t client_id;
+    char topic[20];
+    uint8_t topic_lentgth;
+    char payload[20];
+    uint8_t payload_length;
+    uint8_t end;
+}MQTT_RESPONSE;
+
 typedef enum
 {
 	GNSS_OK    		  = 0,
@@ -57,6 +76,9 @@ CMD_Status A7670_GPS_CMD_CGNSSPWR();
 CMD_Status A7670_GPS_CMD_CAGPS();
 CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH();
 CMD_Status A7670_GPS_CMD_CGPSINFO();
+
+CMD_Status A7670_Pocess_Buffer();
+
 void readNEMA(char *dataNEMA);
 void nextValueNema(char **value, char *previous_value);
 void convertNemaToGNSS(GNSS *gnss, NEMA nema);

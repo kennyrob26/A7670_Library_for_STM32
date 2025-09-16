@@ -76,4 +76,6 @@ CMD_Status A7670_MQTT_CMD_Sub_Topic(void);
 CMD_Status A7670_MQTT_CMD_Confirm_sub_topic(void);
 
 
+
+
 #endif /* INC_A7670_LIBRARY_FOR_STM32_A7670_COMMANDS_MQTT_H_ */

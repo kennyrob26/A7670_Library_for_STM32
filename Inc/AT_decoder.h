@@ -56,26 +56,6 @@ typedef struct AT_INFO
 
 extern AT_INFO at;
 
-typedef enum AT_ResponseType
-{
-    AT_RT_Echo_Command  = 0,
-    AT_RT_Response      = 1,
-    AT_RT_MQTT_Response = 2,
-    AT_RT_NULL          = 3
-}AT_ResponseType;
-
-typedef struct MQTT_RESPONSE
-{
-	char last_message[BUFFER_LENGTH];
-    uint8_t client_id;
-    char topic[20];
-    uint8_t topic_lentgth;
-    char payload[20];
-    uint8_t payload_length;
-    uint8_t end;
-}MQTT_RESPONSE;
-
-
 
 //void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size);
 //void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);
@@ -88,7 +68,7 @@ AT_Status AT_check_Wait_Response_Blocking();
 AT_Status AT_sendCommand();
 AT_Status AT_responseCommand();
 AT_Status AT_Exist_New_Message(uint16_t timeout);
-AT_Status AT_Pocess_Buffer();
+//AT_Status AT_Pocess_Buffer();
 
 
 
