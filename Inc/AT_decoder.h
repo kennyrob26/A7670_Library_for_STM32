@@ -33,6 +33,20 @@ typedef enum
 	AT_TIMEOUT = 3		//TIMEOUT-> O tempo para executar a tarefa estourou
 }AT_Status;
 
+typedef enum
+{
+	CMD_ERROR = 0,
+	CMD_OK    = 1
+} CMD_Status;
+
+typedef enum AT_ResponseType
+{
+    AT_RT_Echo_Command  = 0,
+    AT_RT_Response      = 1,
+    AT_RT_MQTT_Response = 2,
+    AT_RT_NULL          = 3
+}AT_ResponseType;
+
 typedef struct AT_Wait_Response
 {
 	uint32_t start_tick;
@@ -61,14 +75,11 @@ extern AT_INFO at;
 //void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);
 
 AT_Status AT_defineUART(UART_HandleTypeDef *huartx);
-AT_Status AT_processCommand();
 AT_Status AT_config_Wait_Response(const char *expected_response, uint32_t timeout);
 AT_Status AT_check_Wait_Response();
 AT_Status AT_check_Wait_Response_Blocking();
 AT_Status AT_sendCommand();
-AT_Status AT_responseCommand();
 AT_Status AT_Exist_New_Message(uint16_t timeout);
-//AT_Status AT_Pocess_Buffer();
 
 
 

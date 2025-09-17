@@ -14,22 +14,7 @@ GNSS gnss;
 
 CMD_Status processAtCommand();
 
-CMD_Status A7670_CMD_Creset()
-{
-	strcpy(at.at_command, "AT+CRESET");
 
-	if(AT_sendCommand() == AT_OK)
-	{
-		AT_config_Wait_Response("PB DONE", 15000);
-		if(AT_check_Wait_Response_Blocking() == AT_OK)
-		{
-			return CMD_OK;
-		}
-
-	}
-	return CMD_ERROR;
-
-}
 CMD_Status A7670_GPS_Init()
 {
 	Connect_GNSS_state gnss_state = GNSS_PWR;
@@ -99,7 +84,7 @@ CMD_Status A7670_GPS_CMD_CGNSSPWR()
 CMD_Status A7670_GPS_CMD_CAGPS()
 {
 	strcpy(at.at_command, "AT+CAGPS");
-	if(AT_processCommand() == AT_OK)
+	if(AT_sendCommand() == AT_OK)
 	{
 		AT_config_Wait_Response("success", 5000);
 		if(AT_check_Wait_Response_Blocking() == AT_OK)
@@ -111,7 +96,7 @@ CMD_Status A7670_GPS_CMD_CAGPS()
 CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH()
 {
 	strcpy(at.at_command, "AT+CGNSSPORTSWITCH=1,1");
-	if (AT_processCommand())
+	if (AT_sendCommand() == AT_OK)
 		return CMD_OK;
 
 	return CMD_ERROR;
@@ -120,7 +105,7 @@ CMD_Status A7670_GPS_CMD_CGPSINFO()
 {
 	strcpy(at.at_command, "AT+CGPSINFO");
 
-	if(AT_processCommand() == AT_OK)
+	if(AT_sendCommand() == AT_OK)
 	{
 		readNEMA(at.response);
 		return CMD_OK;

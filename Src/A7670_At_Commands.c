@@ -37,6 +37,23 @@ CMD_Status A7670_Pocess_Buffer()
     return AT_ERROR;
 }
 
+CMD_Status A7670_CMD_Creset()
+{
+	strcpy(at.at_command, "AT+CRESET");
+
+	if(AT_sendCommand() == AT_OK)
+	{
+		AT_config_Wait_Response("PB DONE", 15000);
+		if(AT_check_Wait_Response_Blocking() == AT_OK)
+		{
+			return CMD_OK;
+		}
+
+	}
+	return CMD_ERROR;
+
+}
+
 CMD_Status setResponseType()
 {
     if(strncmp((char*)at.response_buffer, "AT", 2) == 0)
@@ -45,6 +62,8 @@ CMD_Status setResponseType()
         response_type = AT_RT_MQTT_Response;
     else if(strncmp((char*)at.response_buffer, "\r\n", 2) == 0)
     	response_type = AT_RT_Response;
+
+    return AT_OK;
 
 }
 

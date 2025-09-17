@@ -8,9 +8,7 @@
 #ifndef INC_A7670_LIBRARY_FOR_STM32_A7670_COMMANDS_GNSS_H_
 #define INC_A7670_LIBRARY_FOR_STM32_A7670_COMMANDS_GNSS_H_
 
-#include "A7670_At_Commands.h"
-
-#endif /* INC_A7670_LIBRARY_FOR_STM32_A7670_COMMANDS_GNSS_H_ */
+#include "AT_decoder.h"
 
 typedef enum
 {
@@ -45,7 +43,7 @@ typedef struct GNSS
 
 }GNSS;
 
-CMD_Status A7670_CMD_Creset();
+
 CMD_Status A7670_GPS_Init();
 CMD_Status A7670_GPS_CMD_CGNSSPWR();
 CMD_Status A7670_GPS_CMD_CAGPS();
@@ -59,6 +57,4 @@ float calculateLatitude(char *latitude_nema, char *N_or_S);
 float calculateLongitude(char *longitude_nema, char *E_or_W);
 
 
-
-
-
+#endif /* INC_A7670_LIBRARY_FOR_STM32_A7670_COMMANDS_GNSS_H_ */

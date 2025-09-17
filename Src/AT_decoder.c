@@ -46,28 +46,6 @@ AT_Status AT_defineUART(UART_HandleTypeDef *huartx)
 		return AT_ERROR;
 }
 
-
-AT_Status AT_processCommand()
-{
-	at.existMessage = 0;
-	if (AT_sendCommand() == AT_OK)
-	{
-		if (AT_responseCommand() == AT_OK)
-		{
-			if(at.echo != NULL)
-			{
-				if(strstr(at.echo, at.at_command))
-					return AT_OK;
-				else
-					return AT_ERROR;
-			}
-			else
-				return AT_OK;
-		}
-	}
-	return AT_ERROR;
-}
-
 AT_Status AT_config_Wait_Response(const char *expected_response, uint32_t timeout)
 {
 	at.wait_response.start_tick = HAL_GetTick();
@@ -123,6 +101,7 @@ AT_Status AT_check_Wait_Response_Blocking()
 		return AT_ERROR;
 }
 
+
 AT_Status AT_sendCommand()
 {
 	uint8_t length = strlen(at.at_command);
@@ -138,20 +117,6 @@ AT_Status AT_sendCommand()
 }
 
 
-
-AT_Status AT_responseCommand()
-{
-	if(AT_Exist_New_Message(50) == AT_OK)
-	{
-		if(AT_Pocess_Buffer() == AT_OK)
-			return AT_OK;
-		else
-			return AT_ERROR;
-	}
-	else
-		return AT_ERROR;
-
-}
 AT_Status AT_Exist_New_Message(uint16_t timeout)
 {
 	if(timeout > 0)
