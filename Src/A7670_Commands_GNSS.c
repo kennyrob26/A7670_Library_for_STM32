@@ -71,32 +71,25 @@ CMD_Status A7670_GPS_CMD_CGNSSPWR()
 {
 	strcpy(at.at_command, "AT+CGNSSPWR=1");
 
-	if(AT_sendCommand() == AT_OK)
-	{
-		AT_config_Wait_Response("READY!", 15000);
-		if(AT_check_Wait_Response_Blocking() == AT_OK)
+	if(AT_sendCommand("READY!", 15000) == AT_OK)
 			return CMD_OK;
-	}
-
-	return CMD_ERROR;
+	else
+		return CMD_ERROR;
 }
 
 CMD_Status A7670_GPS_CMD_CAGPS()
 {
 	strcpy(at.at_command, "AT+CAGPS");
-	if(AT_sendCommand() == AT_OK)
-	{
-		AT_config_Wait_Response("success", 5000);
-		if(AT_check_Wait_Response_Blocking() == AT_OK)
-			return CMD_OK;
-	}
-	return CMD_ERROR;
+	if(AT_sendCommand("success", 5000) == AT_OK)
+		return CMD_OK;
+	else
+		return CMD_ERROR;
 }
 
 CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH()
 {
 	strcpy(at.at_command, "AT+CGNSSPORTSWITCH=1,1");
-	if (AT_sendCommand() == AT_OK)
+	if (AT_sendCommand("", 0) == AT_OK)
 		return CMD_OK;
 
 	return CMD_ERROR;
@@ -105,7 +98,7 @@ CMD_Status A7670_GPS_CMD_CGPSINFO()
 {
 	strcpy(at.at_command, "AT+CGPSINFO");
 
-	if(AT_sendCommand() == AT_OK)
+	if(AT_sendCommand("", 0) == AT_OK)
 	{
 		readNEMA(at.response);
 		return CMD_OK;

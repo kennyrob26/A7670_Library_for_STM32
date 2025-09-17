@@ -41,16 +41,10 @@ CMD_Status A7670_CMD_Creset()
 {
 	strcpy(at.at_command, "AT+CRESET");
 
-	if(AT_sendCommand() == AT_OK)
-	{
-		AT_config_Wait_Response("PB DONE", 15000);
-		if(AT_check_Wait_Response_Blocking() == AT_OK)
-		{
-			return CMD_OK;
-		}
-
-	}
-	return CMD_ERROR;
+	if(AT_sendCommand("PB DONE", 15000) == AT_OK)
+		return CMD_OK;
+	else
+		return CMD_ERROR;
 
 }
 

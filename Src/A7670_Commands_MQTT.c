@@ -115,35 +115,26 @@ CMD_Status A7670_MQTT_Publish_Message(char* topic, char* message_payload)
 CMD_Status A7670_MQTT_CMD_Start()
 {
 	strcpy(at.at_command, "AT+CMQTTSTART");
-	if(AT_sendCommand() == AT_OK)
-	{
-		AT_config_Wait_Response("CMQTTSTART: 0", 9000);
-		if(AT_check_Wait_Response_Blocking() == AT_OK)
-			return CMD_OK;
-	}
-	return CMD_ERROR;
+	if(AT_sendCommand("CMQTTSTART: 0", 9000) == AT_OK)
+		return CMD_OK;
+	else
+		return CMD_ERROR;
 }
 CMD_Status A7670_MQTT_CMD_Acquire_Client(void)
 {
 	sprintf(at.at_command, "%s%d,\"%s\"", "AT+CMQTTACCQ=", mqtt.client.id, mqtt.client.name);
-	if(AT_sendCommand() ==  AT_OK)
-	{
-		AT_config_Wait_Response("OK", 5000);
-		if(AT_check_Wait_Response_Blocking() == AT_OK)
-			return CMD_OK;
-	}
-	return CMD_ERROR;
+	if(AT_sendCommand("OK", 5000) ==  AT_OK)
+		return CMD_OK;
+	else
+		return CMD_ERROR;
 }
 CMD_Status A7670_MQTT_CMD_Connect(void)
 {
 	sprintf(at.at_command, "%s%d,\"%s\",%d,%d", "AT+CMQTTCONNECT=", mqtt.client.id, mqtt.broker.adress, mqtt.broker.kepp_alive, mqtt.broker.clear_session);
-	if(AT_sendCommand() == AT_OK)
-	{
-		AT_config_Wait_Response("CMQTTCONNECT: 0,0", 5000);
-		if(AT_check_Wait_Response_Blocking() == AT_OK)
-			return CMD_OK;
-	}
-	return CMD_ERROR;
+	if(AT_sendCommand("CMQTTCONNECT: 0,0", 5000) == AT_OK)
+		return CMD_OK;
+	else
+		return CMD_ERROR;
 }
 
 
@@ -153,17 +144,13 @@ CMD_Status A7670_MQTT_CMD_Pub_Topic(void)
 {
 	uint8_t topic_length   = strlen(mqtt.message.topic);
 	sprintf(at.at_command, "%s%d,%d", "AT+CMQTTTOPIC=", mqtt.client.id, topic_length);
-	if(AT_sendCommand() == AT_OK)
+	if(AT_sendCommand("", 0) == AT_OK)
 	{
 		HAL_Delay(50);
 		strcpy(at.at_command, mqtt.message.topic);
-		if(AT_sendCommand() == AT_OK)
-		{
-			AT_config_Wait_Response("OK", 1500);
-			if(AT_check_Wait_Response_Blocking() == AT_OK)
-				return CMD_OK;
-		}
 
+		if(AT_sendCommand("OK", 1500) == AT_OK)
+			return CMD_OK;
 	}
 	return CMD_ERROR;
 
@@ -174,16 +161,12 @@ CMD_Status A7670_MQTT_CMD_Payload(void)
 {
 	uint8_t payload_length = strlen(mqtt.message.payload);
 	sprintf(at.at_command, "%s%d,%d", "AT+CMQTTPAYLOAD=", mqtt.client.id, payload_length);
-	if(AT_sendCommand() == AT_OK)
+	if(AT_sendCommand("", 0) == AT_OK)
 	{
 		HAL_Delay(50);
 		strcpy(at.at_command, mqtt.message.payload);
-		if(AT_sendCommand() == AT_OK)
-		{
-			AT_config_Wait_Response("OK", 1500);
-			if(AT_check_Wait_Response_Blocking() == AT_OK)
+		if(AT_sendCommand("OK", 1500) == AT_OK)
 				return CMD_OK;
-		}
 
 	}
 	return CMD_ERROR;
@@ -193,13 +176,10 @@ CMD_Status A7670_MQTT_CMD_Publish(void)
 {
 	//strcpy(at->at_command, "AT+CMQTTPUB=0,1,60");
 	sprintf(at.at_command, "%s%d,%d,%d", "AT+CMQTTPUB=", mqtt.client.id, mqtt.message.QoS, mqtt.broker.kepp_alive);
-	if(AT_sendCommand() == AT_OK)
-	{
-		AT_config_Wait_Response("CMQTTPUB: 0,0", 1500);
-		if(AT_check_Wait_Response_Blocking() == AT_OK)
-			return CMD_OK;
-	}
-	return CMD_ERROR;
+	if(AT_sendCommand("CMQTTPUB: 0,0", 1500) == AT_OK)
+		return CMD_OK;
+	else
+		return CMD_ERROR;
 }
 
 CMD_Status A7670_MQTT_Subscribe_Topic(char* topic)
@@ -217,16 +197,13 @@ CMD_Status A7670_MQTT_CMD_Sub_Topic(void)
 {
 	uint8_t topic_length = strlen(mqtt.message.topic);
 	sprintf(at.at_command, "%s%d,%d,%d", "AT+CMQTTSUBTOPIC=", mqtt.client.id, topic_length, mqtt.message.QoS);
-	if(AT_sendCommand() == AT_OK)
+	if(AT_sendCommand("", 0) == AT_OK)
 	{
 		HAL_Delay(50);
 		strcpy(at.at_command, mqtt.message.topic);
-		if(AT_sendCommand() == AT_OK)
-		{
-			AT_config_Wait_Response("OK", 1500);
-			if(AT_check_Wait_Response_Blocking() == AT_OK)
-				return CMD_OK;
-		}
+		if(AT_sendCommand("OK", 1500) == AT_OK)
+			return CMD_OK;
+
 	}
 	return CMD_ERROR;
 }
@@ -234,14 +211,10 @@ CMD_Status A7670_MQTT_CMD_Sub_Topic(void)
 CMD_Status A7670_MQTT_CMD_Confirm_sub_topic(void)
 {
 	strcpy(at.at_command, "AT+CMQTTSUB=0");
-	if(AT_sendCommand() == AT_OK)
-	{
-		AT_config_Wait_Response("CMQTTSUB: 0,0", 1500);
-		if(AT_check_Wait_Response_Blocking() == AT_OK)
-			return CMD_OK;
-	}
-
-	return CMD_ERROR;
+	if(AT_sendCommand("CMQTTSUB: 0,0", 1500) == AT_OK)
+		return CMD_OK;
+	else
+		return CMD_ERROR;
 }
 
 CMD_Status A7670_MQTT_Register_Callback_Response(void (*callback_function)(MQTT_RESPONSE mqtt_resp))

@@ -102,16 +102,29 @@ AT_Status AT_check_Wait_Response_Blocking()
 }
 
 
-AT_Status AT_sendCommand()
+AT_Status AT_sendCommand(char *expected_response, uint16_t timeout)
 {
+	uint8_t exist_expected_response = strlen(expected_response);
 	uint8_t length = strlen(at.at_command);
 
 	at.at_command[length]     = '\r';
 	at.at_command[length + 1] = '\0';
 
-	if(HAL_UART_Transmit(at.huart, (uint8_t*)at.at_command, length+1, 100) == HAL_OK)
+	if(HAL_UART_Transmit(at.huart, (uint8_t*)at.at_command, length+1, 100) != HAL_OK)
 	{
-		  return AT_OK;
+		return AT_ERROR;
+	}
+	else
+	{
+		if(exist_expected_response && timeout)
+		{
+			AT_config_Wait_Response(expected_response, timeout);
+			if(AT_check_Wait_Response_Blocking() == AT_OK)
+				return AT_OK;
+			else
+				return AT_ERROR;
+		}
+		return AT_OK;
 	}
 	return AT_ERROR;
 }

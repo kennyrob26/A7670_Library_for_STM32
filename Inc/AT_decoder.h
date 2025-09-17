@@ -78,7 +78,7 @@ AT_Status AT_defineUART(UART_HandleTypeDef *huartx);
 AT_Status AT_config_Wait_Response(const char *expected_response, uint32_t timeout);
 AT_Status AT_check_Wait_Response();
 AT_Status AT_check_Wait_Response_Blocking();
-AT_Status AT_sendCommand();
+AT_Status AT_sendCommand(char *expected_response, uint16_t timeout);
 AT_Status AT_Exist_New_Message(uint16_t timeout);
 
 
