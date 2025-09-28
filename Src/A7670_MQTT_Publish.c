@@ -1,0 +1,30 @@
+/*
+ * A7670_MQTT_Publish.c
+ *
+ *  Created on: Sep 24, 2025
+ *      Author: kenny
+ */
+
+
+#include "A7670_MQTT_Publish.h"
+
+
+CMD_Status A7670_MQTT_Publish_Latitude(const char* topic_latitude)
+{
+	return (A7670_MQTT_PublishMessage(topic_latitude, gnss.latitude));
+}
+CMD_Status A7670_MQTT_Publish_Longitude(const char* topic_longitude)
+{
+	return(A7670_MQTT_PublishMessage(topic_longitude, gnss.longitude));
+}
+CMD_Status A7670_MQTT_Publish_LatLon(const char* topic_LatLon)
+{
+	return (A7670_MQTT_PublishMessage(topic_LatLon, gnss.latitude_longitude));
+}
+
+CMD_Status A7670_MQTT_Publish_Speed(const char* topic_speed)
+{
+	char speed[5];
+	sprintf(speed, "%.2f", gnss.speed_kmh);
+	return (A7670_MQTT_PublishMessage(topic_speed, speed));
+}

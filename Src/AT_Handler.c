@@ -5,7 +5,7 @@
  *      Author: kenny
  */
 
-#include "AT_decoder.h"
+#include <AT_Handler.h>
 
 AT_INFO at;
 
@@ -15,6 +15,14 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	if (huart == at.huart)
 	{
 		at.response_buffer[Size] = '\0';
+
+		if(strstr(at.response_buffer, "+CMQTTRXEND: 0") != NULL)
+		{
+			//strcpy(mqtt_resp.last_message, at.response_buffer);
+			//mqtt_resp.exist_new_response = 1;
+			A7670_MQTT_QueuePushMessage(at.response_buffer);
+		}
+
 		at.existMessage = 1;
 		HAL_UARTEx_ReceiveToIdle_DMA(at.huart, (uint8_t*)at.response_buffer, BUFFER_LENGTH);
 	}
@@ -56,7 +64,7 @@ AT_Status AT_config_Wait_Response(const char *expected_response, uint32_t timeou
 	return AT_OK;
 }
 
-AT_Status AT_check_Wait_Response()
+AT_Status AT_checkWaitResponse()
 {
 	if(at.wait_response.waiting_status == 0)
 		return AT_ERROR;
@@ -84,13 +92,13 @@ AT_Status AT_check_Wait_Response()
 	return AT_WAITING;
 }
 
-AT_Status AT_check_Wait_Response_Blocking()
+AT_Status AT_checkWaitResponse_Blocking()
 {
 	uint8_t check_wait_response = AT_WAITING;
 
 	while(check_wait_response == AT_WAITING)
 	{
-		check_wait_response = AT_check_Wait_Response();
+		check_wait_response = AT_checkWaitResponse();
 	}
 
 	if(check_wait_response == AT_OK)
@@ -119,7 +127,7 @@ AT_Status AT_sendCommand(char *expected_response, uint16_t timeout)
 		if(exist_expected_response && timeout)
 		{
 			AT_config_Wait_Response(expected_response, timeout);
-			if(AT_check_Wait_Response_Blocking() == AT_OK)
+			if(AT_checkWaitResponse_Blocking() == AT_OK)
 				return AT_OK;
 			else
 				return AT_ERROR;
@@ -130,7 +138,7 @@ AT_Status AT_sendCommand(char *expected_response, uint16_t timeout)
 }
 
 
-AT_Status AT_Exist_New_Message(uint16_t timeout)
+AT_Status AT_existNewMessage(uint16_t timeout)
 {
 	if(timeout > 0)
 	{
@@ -151,5 +159,10 @@ AT_Status AT_Exist_New_Message(uint16_t timeout)
 		return AT_ERROR;
 
 }
+
+
+
+
+
 
 

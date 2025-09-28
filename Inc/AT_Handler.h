@@ -25,6 +25,10 @@
 #define BUFFER_LENGTH 150
 #define TIMEOUT 50
 
+
+#define MAX_MESSAGE 3
+#define SIZE_MESSAGE 100
+
 typedef enum
 {
 	AT_OK      = 0,		//OK     -> Tudo correu como o esperado
@@ -71,15 +75,21 @@ typedef struct AT_INFO
 extern AT_INFO at;
 
 
+
+
 //void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size);
 //void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);
 
 AT_Status AT_defineUART(UART_HandleTypeDef *huartx);
 AT_Status AT_config_Wait_Response(const char *expected_response, uint32_t timeout);
-AT_Status AT_check_Wait_Response();
-AT_Status AT_check_Wait_Response_Blocking();
+AT_Status AT_checkWaitResponse();
+AT_Status AT_checkWaitResponse_Blocking();
 AT_Status AT_sendCommand(char *expected_response, uint16_t timeout);
-AT_Status AT_Exist_New_Message(uint16_t timeout);
+AT_Status AT_existNewMessage(uint16_t timeout);
+
+
+
+//A7670_MQTT_QueueRead
 
 
 

@@ -13,9 +13,9 @@ NEMA nema;
 GNSS gnss;
 
 CMD_Status processAtCommand();
+float calculateSpeedKmh(char* speed_kont);
 
-
-CMD_Status A7670_GPS_Init()
+CMD_Status A7670_GNSS_Init()
 {
 	Connect_GNSS_state gnss_state = GNSS_PWR;
 	uint8_t attemps = 0;
@@ -24,7 +24,7 @@ CMD_Status A7670_GPS_Init()
 	{
 		switch (gnss_state) {
 			case GNSS_PWR:
-				if(A7670_GPS_CMD_CGNSSPWR() == CMD_OK && attemps < max_attemps)
+				if(A7670_GNSS_CMD_CGNSSPWR() == CMD_OK && attemps < max_attemps)
 				{
 					gnss_state = GNSS_CAGPS;
 					attemps = 0;
@@ -40,11 +40,11 @@ CMD_Status A7670_GPS_Init()
 				}
 			break;
 			case GNSS_CAGPS:
-				A7670_GPS_CMD_CAGPS();
+				A7670_GNSS_CMD_CAGPS();
 				gnss_state = GNSS_PORTSWITCH;
 			break;
 			case GNSS_PORTSWITCH:
-				if(A7670_GPS_CMD_CGNSSPORTSWITCH() == CMD_OK && attemps < max_attemps)
+				if(A7670_GNSS_CMD_CGNSSPORTSWITCH() == CMD_OK && attemps < max_attemps)
 				{
 					gnss_state = GNSS_OK;
 					attemps = 0;
@@ -67,7 +67,7 @@ CMD_Status A7670_GPS_Init()
 	return CMD_OK;
 }
 
-CMD_Status A7670_GPS_CMD_CGNSSPWR()
+CMD_Status A7670_GNSS_CMD_CGNSSPWR()
 {
 	strcpy(at.at_command, "AT+CGNSSPWR=1");
 
@@ -77,7 +77,7 @@ CMD_Status A7670_GPS_CMD_CGNSSPWR()
 		return CMD_ERROR;
 }
 
-CMD_Status A7670_GPS_CMD_CAGPS()
+CMD_Status A7670_GNSS_CMD_CAGPS()
 {
 	strcpy(at.at_command, "AT+CAGPS");
 	if(AT_sendCommand("success", 5000) == AT_OK)
@@ -86,7 +86,7 @@ CMD_Status A7670_GPS_CMD_CAGPS()
 		return CMD_ERROR;
 }
 
-CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH()
+CMD_Status A7670_GNSS_CMD_CGNSSPORTSWITCH()
 {
 	strcpy(at.at_command, "AT+CGNSSPORTSWITCH=1,1");
 	if (AT_sendCommand("", 0) == AT_OK)
@@ -94,12 +94,13 @@ CMD_Status A7670_GPS_CMD_CGNSSPORTSWITCH()
 
 	return CMD_ERROR;
 }
-CMD_Status A7670_GPS_CMD_CGPSINFO()
+CMD_Status A7670_GNSS_CMD_CGPSINFO()
 {
 	strcpy(at.at_command, "AT+CGPSINFO");
 
-	if(AT_sendCommand("", 0) == AT_OK)
+	if(AT_sendCommand("OK", 10) == AT_OK)
 	{
+		processAtCommand();
 		readNEMA(at.response);
 		return CMD_OK;
 	}
@@ -108,10 +109,11 @@ CMD_Status A7670_GPS_CMD_CGPSINFO()
 
 void readNEMA(char *dataNEMA)
 {
-	nema.command = dataNEMA;
-	if(nema.command != NULL)
+	strcpy(nema.command, dataNEMA);
+
+	if(strlen(nema.command) != 0)
 	{
-		nema.lat = strstr(dataNEMA, " ");
+		nema.lat = strstr(nema.command, " ");
 		*nema.lat = '\0';
 		nema.lat += 1;
 	}
@@ -124,6 +126,8 @@ void readNEMA(char *dataNEMA)
     nextValueNema(&nema.alt, nema.utc_time);
     nextValueNema(&nema.speed, nema.alt);
     nextValueNema(&nema.course, nema.speed);
+
+    convertNemaToGNSS();
 
 
 }
@@ -142,12 +146,16 @@ void nextValueNema(char **value, char *previous_value)
 }
 
 
-void convertNemaToGNSS(GNSS *gnss, NEMA nema)
+void convertNemaToGNSS()
 {
-    gnss->latitude           =  calculateLatitude(nema.lat, nema.N_or_S);
-    gnss->longitude          =  calculateLongitude(nema.log, nema.E_or_W);
+    //gnss->latitude   =  calculateLatitude(nema.lat, nema.N_or_S);
+    //gnss->longitude  =  calculateLongitude(nema.log, nema.E_or_W);
+    sprintf(gnss.latitude, "%f", calculateLatitude(nema.lat, nema.N_or_S));
+    sprintf(gnss.longitude, "%f", calculateLongitude(nema.log, nema.E_or_W));
+    //sprintf
+    gnss.speed_kmh  =  calculateSpeedKmh(nema.speed);
     //formatLatitudeLongitude(gnss);
-    sprintf(gnss->latitude_longitude, "%f, %f", gnss->latitude, gnss->longitude);
+    sprintf(gnss.latitude_longitude, "%s, %s", gnss.latitude, gnss.longitude);
 }
 
 float calculateLatitude(char *latitude_nema, char *N_or_S)
@@ -196,3 +204,20 @@ float calculateLongitude(char *longitude_nema, char *E_or_W)
     }
     return(0);
 }
+
+float calculateSpeedKmh(char* speed_kont)
+{
+	float speed_kontf = atof(speed_kont);
+
+	if((speed_kontf != 0) && (speed_kontf < 200))
+	{
+		const float const_knot_to_kmh = 1.825;
+		float speed_kmh = speed_kontf * const_knot_to_kmh;
+		return speed_kmh;
+	}
+	else
+		return 0;
+}
+
+
+

@@ -5,8 +5,11 @@
  *      Author: kenny
  */
 
-#ifndef INC_A7670_LIBRARY_FOR_STM32_A7670_MQTT_TYPES_H_
-#define INC_A7670_LIBRARY_FOR_STM32_A7670_MQTT_TYPES_H_
+#ifndef INC_A7670_LIBRARY_FOR_STM32_A7670_TYPES_MQTT_H_
+#define INC_A7670_LIBRARY_FOR_STM32_A7670_TYPES_MQTT_H_
+
+#include <stdint.h>
+#include <AT_Handler.h>
 
 typedef struct MQTT_Client
 {
@@ -40,6 +43,9 @@ typedef struct MQTT
 }MQTT;
 
 
+
+
+
 typedef enum
 {
 	MSG_OK    		  = 0,
@@ -60,18 +66,31 @@ typedef enum
 
 }MQTT_Connect_State;
 
+
+typedef struct
+{
+    volatile char message[MAX_MESSAGE][SIZE_MESSAGE];
+    volatile uint8_t head;
+    volatile uint8_t tail;
+    volatile uint8_t count_messages;
+} MqttRingBuffer;
+
+//extern MqttRingBuffer ringBuffer;
+
 typedef struct MQTT_RESPONSE
 {
-	char last_message[BUFFER_LENGTH];
+	volatile char last_message[BUFFER_LENGTH];
     uint8_t client_id;
     char topic[20];
     uint8_t topic_lentgth;
     char payload[20];
     uint8_t payload_length;
     uint8_t end;
+
+    volatile MqttRingBuffer ring_buffer;
 }MQTT_RESPONSE;
 
 extern MQTT_RESPONSE mqtt_resp;
 
 
-#endif /* INC_A7670_LIBRARY_FOR_STM32_A7670_MQTT_TYPES_H_ */
+#endif /* INC_A7670_LIBRARY_FOR_STM32_A7670_TYPES_MQTT_H_ */
