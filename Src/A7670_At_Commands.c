@@ -37,6 +37,16 @@ CMD_Status A7670_Pocess_Buffer()
     return AT_ERROR;
 }
 
+/**
+ * @brief Reset A7670 Module
+ * 
+ * This commad resets the module A7670 sending AT+CRESET
+ * 
+ * @return CMD_Status
+ * @retval CMD_OK if reboot is successful
+ * @retval CMD ERROR if the command is sent but we do not receive a module initialization response
+ */
+
 CMD_Status A7670_CMD_Creset()
 {
 	strcpy(at.at_command, "AT+CRESET");
@@ -48,6 +58,11 @@ CMD_Status A7670_CMD_Creset()
 
 }
 
+/**
+ * @brief Checks the response type of the AT command
+ * 
+ * Compare known answers with received answers
+ */
 CMD_Status setResponseType()
 {
     if(strncmp((char*)at.response_buffer, "AT", 2) == 0)
@@ -61,6 +76,18 @@ CMD_Status setResponseType()
 
 }
 
+/** 
+ * @brief Handle AT Messagens
+ * 
+ * This function handles AT messages, where the buffer is divided into 3 parts:
+ * echo     -> Returns the command sent
+ * response -> This is the response to the command sent
+ * OK       -> If OK, it indicates that the command was successful
+ * 
+ * And these will be stored in AT_INFO
+ * 
+ * @return CMD_Status
+*/
 CMD_Status processAtCommand()
 {
 

@@ -67,6 +67,16 @@ CMD_Status A7670_GNSS_Init()
 	return CMD_OK;
 }
 
+/**
+ * @brief Starting to GNSS in A7670 module
+ * 
+ * Sends the AT+CGNSSPWR command to start the GNSS and waits for initialization
+ * IMPORTANT: GNSS may take a few seconds to initialize (~9s)
+ * 
+ * @return CMD_Status
+ * @retval CMD_OK if GNSS Started
+ * @retval CMD_ERROR if expected response not found
+ */
 CMD_Status A7670_GNSS_CMD_CGNSSPWR()
 {
 	strcpy(at.at_command, "AT+CGNSSPWR=1");
@@ -77,6 +87,15 @@ CMD_Status A7670_GNSS_CMD_CGNSSPWR()
 		return CMD_ERROR;
 }
 
+/**
+ * @brief Uses the Assited GNSS (AGNSS)
+ * 
+ * Allows you to obtain data from satellites through the AGNSS server, thus ensuring a much shorter fixation time
+ * 
+ * @return CMD_Status
+ * @retval CMD_OK when AGNSS connected
+ * @retval CMD_ERROR when unable to connect to the AGNSS server
+ */
 CMD_Status A7670_GNSS_CMD_CAGPS()
 {
 	strcpy(at.at_command, "AT+CAGPS");
@@ -86,6 +105,13 @@ CMD_Status A7670_GNSS_CMD_CAGPS()
 		return CMD_ERROR;
 }
 
+/**
+ * @brief Active NMEA output infos
+ * 
+ * Enables NMEA output information using UART, without it it is not possible to use commands like GNSSINFO and GNPSINFO
+ * 
+ * @return CMD_Status
+ */
 CMD_Status A7670_GNSS_CMD_CGNSSPORTSWITCH()
 {
 	strcpy(at.at_command, "AT+CGNSSPORTSWITCH=1,1");
@@ -94,6 +120,14 @@ CMD_Status A7670_GNSS_CMD_CGNSSPORTSWITCH()
 
 	return CMD_ERROR;
 }
+
+/**
+ * @brief Send GPSINFO command
+ * 
+ * Returns GPS data such as date, time, latitude and longitude
+ * 
+ * @return CMD_Status
+ */
 CMD_Status A7670_GNSS_CMD_CGPSINFO()
 {
 	strcpy(at.at_command, "AT+CGPSINFO");
