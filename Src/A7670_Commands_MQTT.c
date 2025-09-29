@@ -330,8 +330,8 @@ CMD_Status A7670_MQTT_QueuePopMessage()
 
 void A7670_MQTT_ReadNewMessages()
 {
-	uint32_t start_time = HAL_GetTick();
-	while(A7670_MQTT_QueueIsEmpty() != 1 && ((HAL_GetTick() - start_time) < 100))
+	uint32_t start_tick = HAL_GetTick();
+	while(A7670_MQTT_QueueIsEmpty() != 1 && ((HAL_GetTick() - start_tick) < 100))
 	{
 		if(A7670_MQTT_QueuePopMessage() == CMD_OK)
 			A7670_MQTT_ProcessResponse();

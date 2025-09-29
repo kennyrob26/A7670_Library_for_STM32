@@ -22,9 +22,12 @@ CMD_Status A7670_MQTT_Register_Callback_Response(void (*callback_function)(MQTT_
 CMD_Status A7670_MQTT_ConfigMQTT( uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS);
 CMD_Status A7670_MQTT_PublishMessage( const char* topic, const char* message_payload);
 CMD_Status A7670_MQTT_SubscribeTopic(char* topic);
+void A7670_MQTT_ReadNewMessages();
+
 CMD_Status A7670_MQTT_CMD_Start(void);
 CMD_Status A7670_MQTT_CMD_AcquireClient(void);
 CMD_Status A7670_MQTT_CMD_Connect(void);
+
 CMD_Status A7670_MQTT_CMD_Pub_Topic(void);
 CMD_Status A7670_MQTT_CMD_Payload(void);
 CMD_Status A7670_MQTT_CMD_Publish(void);
@@ -36,7 +39,7 @@ uint8_t A7670_MQTT_QueueIsFull();
 uint8_t A7670_MQTT_QueueIsEmpty();
 CMD_Status A7670_MQTT_QueuePushMessage(char *mqttMessage);
 CMD_Status A7670_MQTT_QueuePopMessage();
-void A7670_MQTT_ReadNewMessages();
+
 
 
 

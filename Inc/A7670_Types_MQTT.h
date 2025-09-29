@@ -11,6 +11,32 @@
 #include <stdint.h>
 #include <AT_Handler.h>
 
+#define MAX_MESSAGE 3
+#define SIZE_MESSAGE 100
+
+
+typedef enum
+{
+	MSG_OK    		  = 0,
+	MSG_SET_TOPIC	  = 1,
+	MSG_SET_PAYLOAD   = 2,
+	MSG_PUBLISH       = 3,
+	MSG_RESET_MODULE  = 4
+
+}Publish_Message_state;
+
+typedef enum
+{
+	MQTT_OK      = 0,
+	MQTT_START   = 1,
+	MQTT_ACCQ    = 2,
+	MQTT_CONNECT = 3,
+	MQTT_RESET_MODULE
+
+}MQTT_Connect_State;
+
+//=================== -- Structs -- =======================
+
 typedef struct MQTT_Client
 {
 	uint8_t id;
@@ -43,30 +69,6 @@ typedef struct MQTT
 }MQTT;
 
 
-
-
-
-typedef enum
-{
-	MSG_OK    		  = 0,
-	MSG_SET_TOPIC	  = 1,
-	MSG_SET_PAYLOAD   = 2,
-	MSG_PUBLISH       = 3,
-	MSG_RESET_MODULE  = 4
-
-}Publish_Message_state;
-
-typedef enum
-{
-	MQTT_OK      = 0,
-	MQTT_START   = 1,
-	MQTT_ACCQ    = 2,
-	MQTT_CONNECT = 3,
-	MQTT_RESET_MODULE
-
-}MQTT_Connect_State;
-
-
 typedef struct
 {
     volatile char message[MAX_MESSAGE][SIZE_MESSAGE];
@@ -75,10 +77,10 @@ typedef struct
     volatile uint8_t count_messages;
 } MqttRingBuffer;
 
-//extern MqttRingBuffer ringBuffer;
 
 typedef struct MQTT_RESPONSE
 {
+	volatile MqttRingBuffer ring_buffer;
 	volatile char last_message[BUFFER_LENGTH];
     uint8_t client_id;
     char topic[20];
@@ -86,8 +88,6 @@ typedef struct MQTT_RESPONSE
     char payload[20];
     uint8_t payload_length;
     uint8_t end;
-
-    volatile MqttRingBuffer ring_buffer;
 }MQTT_RESPONSE;
 
 extern MQTT_RESPONSE mqtt_resp;

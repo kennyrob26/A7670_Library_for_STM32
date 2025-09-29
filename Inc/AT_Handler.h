@@ -13,28 +13,16 @@
 #include "stdlib.h"
 #include "stm32g4xx_hal.h"
 
-//#define AT_OK 1
-//#define AT_ERROR 0
-
-#define STATE_SEND_COMMAND 0
-#define STATE_RECEIVE_COMMAND 1
-#define STATE_WAIT_COMMAND 2
-
-
-
 #define BUFFER_LENGTH 150
 #define TIMEOUT 50
 
-
-#define MAX_MESSAGE 3
-#define SIZE_MESSAGE 100
-
 typedef enum
 {
-	AT_OK      = 0,		//OK     -> Tudo correu como o esperado
-	AT_ERROR   = 1,		//ERROR  -> Algo deu errado
-	AT_WAITING = 2,		//WAITING-> Estamos esperando a tarefa ser conclida
-	AT_TIMEOUT = 3		//TIMEOUT-> O tempo para executar a tarefa estourou
+	AT_OK           = 0,		//OK     -> Tudo correu como o esperado
+	AT_ERROR        = 1,		//ERROR  -> Algo deu errado
+	AT_WAITING      = 2,		//WAITING-> Estamos esperando a tarefa ser conclida
+	AT_TIMEOUT      = 3,		//TIMEOUT-> O tempo para executar a tarefa estourou
+	AT_NOT_RESPONSE = 4
 }AT_Status;
 
 typedef enum
@@ -81,7 +69,7 @@ extern AT_INFO at;
 //void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);
 
 AT_Status AT_defineUART(UART_HandleTypeDef *huartx);
-AT_Status AT_config_Wait_Response(const char *expected_response, uint32_t timeout);
+AT_Status AT_configWaitResponse(const char *expected_response, uint32_t timeout);
 AT_Status AT_checkWaitResponse();
 AT_Status AT_checkWaitResponse_Blocking();
 AT_Status AT_sendCommand(char *expected_response, uint16_t timeout);

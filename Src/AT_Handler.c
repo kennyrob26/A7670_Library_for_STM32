@@ -17,13 +17,10 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 		at.response_buffer[Size] = '\0';
 
 		if(strstr(at.response_buffer, "+CMQTTRXEND: 0") != NULL)
-		{
-			//strcpy(mqtt_resp.last_message, at.response_buffer);
-			//mqtt_resp.exist_new_response = 1;
 			A7670_MQTT_QueuePushMessage(at.response_buffer);
-		}
+		else
+			at.existMessage = 1;
 
-		at.existMessage = 1;
 		HAL_UARTEx_ReceiveToIdle_DMA(at.huart, (uint8_t*)at.response_buffer, BUFFER_LENGTH);
 	}
 
@@ -41,6 +38,16 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
     }
 }
 
+/**
+ * @brief Defines wich UART is used for comunication with A7670
+ * 
+ * This function sets the UART where the AT command is sent and sets the function for DMA interrupt.
+ * 
+ * @param huartx is a pointer to the instance uart
+ * @return AT_Status
+ * @retval AT_OK if uart configuration is successful
+ * @retval AT_ERROR if it was not possible to configure the uart
+ */
 
 AT_Status AT_defineUART(UART_HandleTypeDef *huartx)
 {
@@ -54,7 +61,12 @@ AT_Status AT_defineUART(UART_HandleTypeDef *huartx)
 		return AT_ERROR;
 }
 
-AT_Status AT_config_Wait_Response(const char *expected_response, uint32_t timeout)
+/**
+ * @brief This function allows us to configure the wait for a command response, where we define the expected response, and a maximum response time.
+ * @param expected_response the String we expect as a response
+ * @param timeout the maximum expected time for find the expected_response
+ */
+AT_Status AT_configWaitResponse(const char *expected_response, uint32_t timeout)
 {
 	at.wait_response.start_tick = HAL_GetTick();
 	at.wait_response.timeout = timeout;
@@ -64,6 +76,14 @@ AT_Status AT_config_Wait_Response(const char *expected_response, uint32_t timeou
 	return AT_OK;
 }
 
+/**
+ * @brief non-blocking function that waits for a command response, but first you must configure AT_configWaitResponse.
+ * @return This function return AT_Status
+ * @retval AT_ERROR if not in wait mode, this occurs when AT_configWaitResponse has not been configured
+ * @retval AT_OK if response to command was found
+ * @retval AT_TIMEOUT if the set timeout has not elapsed
+ * @retval AT_WAITING if we are still waiting for an answer, and time is not up
+ */
 AT_Status AT_checkWaitResponse()
 {
 	if(at.wait_response.waiting_status == 0)
@@ -92,6 +112,15 @@ AT_Status AT_checkWaitResponse()
 	return AT_WAITING;
 }
 
+/**
+ * @brief This is the blocking version of AT_checkWaitResponse() 
+ * 
+ * Where the code blocks until the response is not found, or the timeout is exceeded.
+ *  We call AT_checkWaitResponse() until the response is found or the timeout is exceeded.
+ * 
+ * @return AT_Status
+ */
+
 AT_Status AT_checkWaitResponse_Blocking()
 {
 	uint8_t check_wait_response = AT_WAITING;
@@ -109,6 +138,19 @@ AT_Status AT_checkWaitResponse_Blocking()
 		return AT_ERROR;
 }
 
+/**
+ * @brief Sends the AT command to the UART. 
+ * 
+ * The command must be previously defined in the AT_INFO command (at.command).
+ * This function uses to AT_checkWaitResponse_Blocking for waitng expected response.
+ * 
+ * @param expected_response this is the response string expected as a response to the command sent
+ * @param timeout set a maximum response wait time
+ * @return return a AT_Status
+ * @retval AT_OK if the command is sent successfully and the expected response is found
+ * @retval AT_ERROR if unable to send command on UART
+ * @retval AT_NOT_RESPONSE if the command is sent but the expected response is not found
+ */
 
 AT_Status AT_sendCommand(char *expected_response, uint16_t timeout)
 {
@@ -126,17 +168,25 @@ AT_Status AT_sendCommand(char *expected_response, uint16_t timeout)
 	{
 		if(exist_expected_response && timeout)
 		{
-			AT_config_Wait_Response(expected_response, timeout);
+			AT_configWaitResponse(expected_response, timeout);
 			if(AT_checkWaitResponse_Blocking() == AT_OK)
 				return AT_OK;
 			else
-				return AT_ERROR;
+				return AT_NOT_RESPONSE;
 		}
 		return AT_OK;
 	}
 	return AT_ERROR;
 }
 
+/**
+ * @brief Checks for new messages on the UART
+ * 
+ * This fuction allows us to monitor if exist new messages in UART Buffer
+ * 
+ * @param timeout this parameter defines the maximum time we want to wait for a new message
+ * @return return a AT_Status, where AT_OK if exist a new Message, and AT_ERROR if not exist a new message
+ */
 
 AT_Status AT_existNewMessage(uint16_t timeout)
 {
