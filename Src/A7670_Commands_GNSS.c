@@ -9,11 +9,116 @@
 
 #include "A7670_Commands_GNSS.h"
 
-NEMA nema;
+NMEA nmea;
 GNSS gnss;
 
-CMD_Status processAtCommand();
-float calculateSpeedKmh(char* speed_kont);
+//CMD_Status processAtCommand();
+
+
+/*================= -- Static Functions -- =====================*/
+
+static float calculateLatitude(char *latitude_nema, char *N_or_S)
+{
+    if(strlen(latitude_nema) && strlen(N_or_S))
+    {
+        char lat_degress_buffer[3];
+        char lat_minutes_buffer[15];
+
+        strncpy(lat_degress_buffer, latitude_nema, 2);
+        strcpy(lat_minutes_buffer, latitude_nema + 2);
+
+        uint16_t lat_degress = atoi(lat_degress_buffer);
+        float lat_minutes = atof(lat_minutes_buffer);
+
+        float latitude = lat_degress + (lat_minutes / 60);
+
+        if(N_or_S[0] == 'S')
+            latitude = latitude * -1;
+
+        return latitude;
+    }
+    return 0;
+
+}
+
+static float calculateLongitude(char *longitude_nema, char *E_or_W)
+{
+    if(strlen(longitude_nema) && strlen(E_or_W))
+    {
+        char log_degress_buffer[4];
+        char log_minutes_buffer[15];
+
+        strncpy(log_degress_buffer, longitude_nema, 3);
+        strcpy(log_minutes_buffer, longitude_nema + 3);
+
+        uint16_t log_degress =  atoi(log_degress_buffer);
+        float log_minutes    =  atof(log_minutes_buffer);
+
+        float longitude = log_degress + (log_minutes / 60);
+
+        if(E_or_W[0] == 'W')
+            longitude = (longitude * -1);
+
+        return longitude;
+    }
+    return(0);
+}
+
+static float calculateSpeedKmh(char* speed_kont)
+{
+	float speed_kontf = atof(speed_kont);
+
+	if((speed_kontf != 0) && (speed_kontf < 200))
+	{
+		const float const_knot_to_kmh = 1.825;
+		float speed_kmh = speed_kontf * const_knot_to_kmh;
+		return speed_kmh;
+	}
+	else
+		return 0;
+}
+
+static void nextValueNmea(char **value, char *previous_value)
+{
+    if(previous_value != NULL)
+    {
+        *value = strstr(previous_value, ",");
+        if(*value != NULL)
+        {
+            **value = '\0';
+            *value += 1;
+        }
+    }
+}
+
+
+static void readNMEA(char *dataNMEA)
+{
+	strcpy(nmea.command, dataNMEA);
+
+	if(strlen(nmea.command) != 0)
+	{
+		nmea.lat = strstr(nmea.command, " ");
+		*nmea.lat = '\0';
+		nmea.lat += 1;
+	}
+
+    nextValueNmea(&nmea.N_or_S, nmea.lat);
+    nextValueNmea(&nmea.log, nmea.N_or_S);
+    nextValueNmea(&nmea.E_or_W, nmea.log);
+    nextValueNmea(&nmea.date, nmea.E_or_W);
+    nextValueNmea(&nmea.utc_time, nmea.date);
+    nextValueNmea(&nmea.alt, nmea.utc_time);
+    nextValueNmea(&nmea.speed, nmea.alt);
+    nextValueNmea(&nmea.course, nmea.speed);
+
+    gnss.latitude  = calculateLatitude(nmea.lat, nmea.N_or_S);
+    gnss.longitude = calculateLongitude(nmea.log, nmea.E_or_W);
+    sprintf(gnss.latitude_longitude, "%f, %f", gnss.latitude, gnss.longitude);
+    gnss.speed_kmh = calculateSpeedKmh(nmea.speed);
+
+}
+
 
 CMD_Status A7670_GNSS_Init()
 {
@@ -135,123 +240,14 @@ CMD_Status A7670_GNSS_CMD_CGPSINFO()
 	if(AT_sendCommand("OK", 10) == AT_OK)
 	{
 		processAtCommand();
-		readNEMA(at.response);
+		readNMEA(at.response);
 		return CMD_OK;
 	}
 	return CMD_ERROR;
 }
 
-void readNEMA(char *dataNEMA)
-{
-	strcpy(nema.command, dataNEMA);
-
-	if(strlen(nema.command) != 0)
-	{
-		nema.lat = strstr(nema.command, " ");
-		*nema.lat = '\0';
-		nema.lat += 1;
-	}
-
-    nextValueNema(&nema.N_or_S, nema.lat);
-    nextValueNema(&nema.log, nema.N_or_S);
-    nextValueNema(&nema.E_or_W, nema.log);
-    nextValueNema(&nema.date, nema.E_or_W);
-    nextValueNema(&nema.utc_time, nema.date);
-    nextValueNema(&nema.alt, nema.utc_time);
-    nextValueNema(&nema.speed, nema.alt);
-    nextValueNema(&nema.course, nema.speed);
-
-    convertNemaToGNSS();
 
 
-}
-
-void nextValueNema(char **value, char *previous_value)
-{
-    if(previous_value != NULL)
-    {
-        *value = strstr(previous_value, ",");
-        if(*value != NULL)
-        {
-            **value = '\0';
-            *value += 1;
-        }
-    }
-}
-
-
-void convertNemaToGNSS()
-{
-    //gnss->latitude   =  calculateLatitude(nema.lat, nema.N_or_S);
-    //gnss->longitude  =  calculateLongitude(nema.log, nema.E_or_W);
-    sprintf(gnss.latitude, "%f", calculateLatitude(nema.lat, nema.N_or_S));
-    sprintf(gnss.longitude, "%f", calculateLongitude(nema.log, nema.E_or_W));
-    //sprintf
-    gnss.speed_kmh  =  calculateSpeedKmh(nema.speed);
-    //formatLatitudeLongitude(gnss);
-    sprintf(gnss.latitude_longitude, "%s, %s", gnss.latitude, gnss.longitude);
-}
-
-float calculateLatitude(char *latitude_nema, char *N_or_S)
-{
-    if(strlen(latitude_nema) && strlen(N_or_S))
-    {
-        char lat_degress_buffer[3];
-        char lat_minutes_buffer[15];
-
-        strncpy(lat_degress_buffer, latitude_nema, 2);
-        strcpy(lat_minutes_buffer, latitude_nema + 2);
-
-        uint16_t lat_degress = atoi(lat_degress_buffer);
-        float lat_minutes = atof(lat_minutes_buffer);
-
-        float latitude = lat_degress + (lat_minutes / 60);
-
-        if(N_or_S[0] == 'S')
-            latitude = latitude * -1;
-
-        return latitude;
-    }
-    return 0;
-
-}
-
-float calculateLongitude(char *longitude_nema, char *E_or_W)
-{
-    if(strlen(longitude_nema) && strlen(E_or_W))
-    {
-        char log_degress_buffer[4];
-        char log_minutes_buffer[15];
-
-        strncpy(log_degress_buffer, longitude_nema, 3);
-        strcpy(log_minutes_buffer, longitude_nema + 3);
-
-        uint16_t log_degress =  atoi(log_degress_buffer);
-        float log_minutes    =  atof(log_minutes_buffer);
-
-        float longitude = log_degress + (log_minutes / 60);
-
-        if(E_or_W[0] == 'W')
-            longitude = (longitude * -1);
-
-        return longitude;
-    }
-    return(0);
-}
-
-float calculateSpeedKmh(char* speed_kont)
-{
-	float speed_kontf = atof(speed_kont);
-
-	if((speed_kontf != 0) && (speed_kontf < 200))
-	{
-		const float const_knot_to_kmh = 1.825;
-		float speed_kmh = speed_kontf * const_knot_to_kmh;
-		return speed_kmh;
-	}
-	else
-		return 0;
-}
 
 
 

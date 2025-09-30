@@ -17,7 +17,7 @@ typedef enum
 	GNSS_RESET_MODULE = 4
 }Connect_GNSS_state;
 
-typedef struct NEMA
+typedef struct NMEA
 {
 	char command[100];
     char *lat;
@@ -29,16 +29,16 @@ typedef struct NEMA
     char *alt;
     char *speed;
     char *course;
-}NEMA;
+}NMEA;
 
-extern NEMA nema;
+extern NMEA nmea;
 
 
 //  GNSS
 typedef struct GNSS
 {
-    char latitude[20];
-    char longitude[20];
+    float latitude;
+    float longitude;
     char latitude_longitude[30];
     float speed_kmh;
 

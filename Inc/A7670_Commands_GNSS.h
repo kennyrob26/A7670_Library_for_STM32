@@ -18,11 +18,12 @@ CMD_Status A7670_GNSS_CMD_CAGPS();
 CMD_Status A7670_GNSS_CMD_CGNSSPORTSWITCH();
 CMD_Status A7670_GNSS_CMD_CGPSINFO();
 
-void readNEMA(char *dataNEMA);
-void nextValueNema(char **value, char *previous_value);
-void convertNemaToGNSS();
+/*
+void readNMEA(char *dataNMEA);
+void nextValueNmea(char **value, char *previous_value);
+void convertNmeaToGNSS();
 float calculateLatitude(char *latitude_nema, char *N_or_S);
 float calculateLongitude(char *longitude_nema, char *E_or_W);
-
+*/
 
 #endif /* INC_A7670_LIBRARY_FOR_STM32_A7670_COMMANDS_GNSS_H_ */

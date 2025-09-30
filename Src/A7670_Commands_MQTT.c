@@ -98,6 +98,7 @@ CMD_Status A7670_MQTT_CMD_Connect(void)
 
 CMD_Status A7670_MQTT_PublishMessage(const char* topic, const char* message_payload)
 {
+	//HAL_Delay(500);
 	strcpy(mqtt.message.topic, topic);
 	strcpy(mqtt.message.payload, message_payload);
 

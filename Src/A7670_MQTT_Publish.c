@@ -11,14 +11,19 @@
 
 CMD_Status A7670_MQTT_Publish_Latitude(const char* topic_latitude)
 {
-	return (A7670_MQTT_PublishMessage(topic_latitude, gnss.latitude));
+	char latitude[20];
+	sprintf(latitude, "%.6f", gnss.latitude);
+	return (A7670_MQTT_PublishMessage(topic_latitude, latitude));
 }
 CMD_Status A7670_MQTT_Publish_Longitude(const char* topic_longitude)
 {
-	return(A7670_MQTT_PublishMessage(topic_longitude, gnss.longitude));
+	char longitude[20];
+	sprintf(longitude, "%.6f", gnss.longitude);
+	return(A7670_MQTT_PublishMessage(topic_longitude, longitude));
 }
 CMD_Status A7670_MQTT_Publish_LatLon(const char* topic_LatLon)
 {
+
 	return (A7670_MQTT_PublishMessage(topic_LatLon, gnss.latitude_longitude));
 }
 
