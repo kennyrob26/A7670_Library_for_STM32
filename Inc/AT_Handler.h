@@ -11,7 +11,7 @@
 #include "string.h"
 #include "stdint.h"
 #include "stdlib.h"
-#include "stm32g4xx_hal.h"
+//#include "stm32g4xx_hal.h"
 
 #define BUFFER_LENGTH 150
 #define TIMEOUT 50

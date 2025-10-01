@@ -47,7 +47,7 @@ typedef struct MQTT_Message
 {
 	uint8_t QoS;
 	char topic[20];
-	char payload[100];
+	char payload[20];
 
 }MQTT_Message;
 
@@ -71,16 +71,27 @@ typedef struct MQTT
 
 typedef struct
 {
-    volatile char message[MAX_MESSAGE][SIZE_MESSAGE];
-    volatile uint8_t head;
-    volatile uint8_t tail;
-    volatile uint8_t count_messages;
-} MqttRingBuffer;
+	MQTT_Message message[5];
+    uint8_t head;
+    uint8_t tail;
+    uint8_t count_messages;
+    uint32_t start_tick;
+} MqttRingBufferSend;
+
+
+
+typedef struct
+{
+    char message[MAX_MESSAGE][SIZE_MESSAGE];
+    uint8_t head;
+    uint8_t tail;
+    uint8_t count_messages;
+} MqttRingBufferResponse;
 
 
 typedef struct MQTT_RESPONSE
 {
-	volatile MqttRingBuffer ring_buffer;
+	volatile MqttRingBufferResponse ring_buffer;
 	volatile char last_message[BUFFER_LENGTH];
     uint8_t client_id;
     char topic[20];

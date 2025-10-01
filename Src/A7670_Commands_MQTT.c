@@ -6,6 +6,10 @@
  */
 #include "A7670_Commands_MQTT.h"
 
+#define MAX_SEND_MESSAGE 5
+MqttRingBufferSend mqtt_send;
+
+
 MQTT mqtt;
 MQTT_RESPONSE mqtt_resp;
 
@@ -21,6 +25,12 @@ CMD_Status A7670_MQTT_configMQTT(uint8_t client_id, char *client_name, char *bro
 	mqtt.broker.kepp_alive = keep_alive;
 	mqtt.broker.clear_session = clear_session;
 	mqtt.message.QoS = QoS;
+
+
+	mqtt_send.count_messages = 0;
+	mqtt_send.start_tick = 0;
+	mqtt_send.head = 0;
+	mqtt_send.tail = 0;
 
 	MQTT_Connect_State mqtt_state = MQTT_START;
 
@@ -339,6 +349,33 @@ void A7670_MQTT_ReadNewMessages()
 	}
 }
 
+
+
+void A7670_MQTT_PushPubMessage(const char* topic, const char* payload)
+{
+	if(mqtt_send.count_messages < MAX_SEND_MESSAGE)
+	{
+		strcpy(mqtt_send.message[mqtt_send.head].topic, topic);
+		strcpy(mqtt_send.message[mqtt_send.head].payload, payload);
+
+		mqtt_send.head = (mqtt_send.head + 1) % MAX_SEND_MESSAGE;
+		mqtt_send.count_messages++;
+	}
+}
+
+void A7670_MQTT_PubQueueMessages()
+{
+	if(mqtt_send.count_messages > 0 && ((HAL_GetTick() - mqtt_send.start_tick) > 500))
+	{
+		A7670_MQTT_PublishMessage(mqtt_send.message[mqtt_send.tail].topic, mqtt_send.message[mqtt_send.tail].payload);
+
+		mqtt_send.start_tick = HAL_GetTick();
+
+		mqtt_send.tail = (mqtt_send.tail + 1) % MAX_SEND_MESSAGE;
+		mqtt_send.count_messages--;
+
+	}
+}
 
 
 

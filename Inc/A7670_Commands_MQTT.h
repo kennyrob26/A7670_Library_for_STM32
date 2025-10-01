@@ -40,6 +40,9 @@ uint8_t A7670_MQTT_QueueIsEmpty();
 CMD_Status A7670_MQTT_QueuePushMessage(char *mqttMessage);
 CMD_Status A7670_MQTT_QueuePopMessage();
 
+void A7670_MQTT_PushPubMessage(const char* topic, const char* payload);
+void A7670_MQTT_PubQueueMessages();
+
 
 
 
