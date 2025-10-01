@@ -68,30 +68,30 @@ typedef struct MQTT
 
 }MQTT;
 
+typedef struct
+{
+    uint8_t head;
+    uint8_t tail;
+    uint8_t count;
+} RingBuffer;
 
 typedef struct
 {
 	MQTT_Message message[5];
-    uint8_t head;
-    uint8_t tail;
-    uint8_t count_messages;
+	RingBuffer ring_buffer;
     uint32_t start_tick;
 } MqttRingBufferSend;
-
-
 
 typedef struct
 {
     char message[MAX_MESSAGE][SIZE_MESSAGE];
-    uint8_t head;
-    uint8_t tail;
-    uint8_t count_messages;
+    RingBuffer ring_buffer;
 } MqttRingBufferResponse;
 
 
 typedef struct MQTT_RESPONSE
 {
-	volatile MqttRingBufferResponse ring_buffer;
+	volatile MqttRingBufferResponse queue;
 	volatile char last_message[BUFFER_LENGTH];
     uint8_t client_id;
     char topic[20];

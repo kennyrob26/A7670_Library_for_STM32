@@ -35,8 +35,8 @@ CMD_Status A7670_MQTT_CMD_SubTopic(void);
 CMD_Status A7670_MQTT_CMD_ConfirmSubTopic(void);
 CMD_Status A7670_MQTT_ProcessResponse();
 
-uint8_t A7670_MQTT_QueueIsFull();
-uint8_t A7670_MQTT_QueueIsEmpty();
+uint8_t A7670_MQTT_QueueIsFull(RingBuffer *ring_buffer);
+uint8_t A7670_MQTT_QueueIsEmpty(RingBuffer *ring_buffer);
 CMD_Status A7670_MQTT_QueuePushMessage(char *mqttMessage);
 CMD_Status A7670_MQTT_QueuePopMessage();
 

@@ -27,10 +27,10 @@ CMD_Status A7670_MQTT_configMQTT(uint8_t client_id, char *client_name, char *bro
 	mqtt.message.QoS = QoS;
 
 
-	mqtt_send.count_messages = 0;
-	mqtt_send.start_tick = 0;
-	mqtt_send.head = 0;
-	mqtt_send.tail = 0;
+	//mqtt_send.count_messages = 0;
+	//mqtt_send.start_tick = 0;
+	//mqtt_send.head = 0;
+	//mqtt_send.tail = 0;
 
 	MQTT_Connect_State mqtt_state = MQTT_START;
 
@@ -287,17 +287,17 @@ CMD_Status A7670_MQTT_ProcessResponse()
 
 /*================-- QUEUE Functions ---==========================*/
 
-uint8_t A7670_MQTT_QueueIsFull()
+uint8_t A7670_MQTT_QueueIsFull(RingBuffer *ring_buffer)
 {
-    if(mqtt_resp.ring_buffer.count_messages >= MAX_MESSAGE)
+    if(ring_buffer->count >= MAX_MESSAGE)
         return 1;
     else
         return 0;
 }
 
-uint8_t A7670_MQTT_QueueIsEmpty()
+uint8_t A7670_MQTT_QueueIsEmpty(RingBuffer *ring_buffer)
 {
-    if(mqtt_resp.ring_buffer.count_messages == 0)
+    if(ring_buffer->count == 0)
         return 1;
     else
         return 0;
@@ -305,13 +305,16 @@ uint8_t A7670_MQTT_QueueIsEmpty()
 
 CMD_Status A7670_MQTT_QueuePushMessage(char *mqttMessage)
 {
-    if(A7670_MQTT_QueueIsFull() == 0)
+    if(A7670_MQTT_QueueIsFull(&mqtt_resp.queue.ring_buffer) == 0)
     {
-        strcpy(mqtt_resp.ring_buffer.message[mqtt_resp.ring_buffer.head], mqttMessage);
+    	uint8_t *head  = (uint8_t*) &mqtt_resp.queue.ring_buffer.head;
+    	uint8_t *count = (uint8_t*) &mqtt_resp.queue.ring_buffer.count;
 
-        mqtt_resp.ring_buffer.head = (mqtt_resp.ring_buffer.head + 1) % MAX_MESSAGE;
+        strcpy((char*)mqtt_resp.queue.message[*head], (char*)mqttMessage);
 
-        mqtt_resp.ring_buffer.count_messages++;
+       *head = ((*head) + 1) % MAX_MESSAGE;
+
+        (*count)++;
 
         return CMD_OK;
     }
@@ -321,16 +324,17 @@ CMD_Status A7670_MQTT_QueuePushMessage(char *mqttMessage)
 
 CMD_Status A7670_MQTT_QueuePopMessage()
 {
-    if(A7670_MQTT_QueueIsEmpty() == 0)
+    if(A7670_MQTT_QueueIsEmpty(&mqtt_resp.queue.ring_buffer) == 0)
     {
-        strcpy(mqtt_resp.last_message, mqtt_resp.ring_buffer.message[mqtt_resp.ring_buffer.tail]);
+    	uint8_t *tail  = (uint8_t*) &mqtt_resp.queue.ring_buffer.tail;
+    	uint8_t *count = (uint8_t*) &mqtt_resp.queue.ring_buffer.count;
+        strcpy((char*)mqtt_resp.last_message, (char*)mqtt_resp.queue.message[*tail]);
 
-        mqtt_resp.ring_buffer.tail = (mqtt_resp.ring_buffer.tail + 1) % MAX_MESSAGE;
+        *tail = ((*tail) + 1) % MAX_MESSAGE;
 
-        mqtt_resp.ring_buffer.count_messages--;
+        (*count)--;
 
         return CMD_OK;
-        //
     }
     else
     	mqtt_resp.last_message[0] = '\0';
@@ -342,7 +346,7 @@ CMD_Status A7670_MQTT_QueuePopMessage()
 void A7670_MQTT_ReadNewMessages()
 {
 	uint32_t start_tick = HAL_GetTick();
-	while(A7670_MQTT_QueueIsEmpty() != 1 && ((HAL_GetTick() - start_tick) < 100))
+	while(A7670_MQTT_QueueIsEmpty(&mqtt_resp.queue.ring_buffer) != 1 && ((HAL_GetTick() - start_tick) < 100))
 	{
 		if(A7670_MQTT_QueuePopMessage() == CMD_OK)
 			A7670_MQTT_ProcessResponse();
@@ -353,26 +357,35 @@ void A7670_MQTT_ReadNewMessages()
 
 void A7670_MQTT_PushPubMessage(const char* topic, const char* payload)
 {
-	if(mqtt_send.count_messages < MAX_SEND_MESSAGE)
+	if(mqtt_send.ring_buffer.count < MAX_MESSAGE)
 	{
-		strcpy(mqtt_send.message[mqtt_send.head].topic, topic);
-		strcpy(mqtt_send.message[mqtt_send.head].payload, payload);
+		uint8_t *head = &mqtt_send.ring_buffer.head;
+		char* mqtt_topic = mqtt_send.message[*head].topic;
+		char* mqtt_payload = mqtt_send.message[*head].payload;
 
-		mqtt_send.head = (mqtt_send.head + 1) % MAX_SEND_MESSAGE;
-		mqtt_send.count_messages++;
+		strcpy(mqtt_topic, topic);
+		strcpy(mqtt_payload, payload);
+
+		*head = ((*head) + 1) % MAX_MESSAGE;
+		mqtt_send.ring_buffer.count++;
 	}
 }
 
 void A7670_MQTT_PubQueueMessages()
 {
-	if(mqtt_send.count_messages > 0 && ((HAL_GetTick() - mqtt_send.start_tick) > 500))
+	if(mqtt_send.ring_buffer.count > 0 && ((HAL_GetTick() - mqtt_send.start_tick) > 500))
 	{
-		A7670_MQTT_PublishMessage(mqtt_send.message[mqtt_send.tail].topic, mqtt_send.message[mqtt_send.tail].payload);
+		uint8_t *tail = &mqtt_send.ring_buffer.tail;
+		char* topic = mqtt_send.message[*tail].topic;
+		char* payload = mqtt_send.message[*tail].payload;
+
+		A7670_MQTT_PublishMessage(topic, payload);
 
 		mqtt_send.start_tick = HAL_GetTick();
 
-		mqtt_send.tail = (mqtt_send.tail + 1) % MAX_SEND_MESSAGE;
-		mqtt_send.count_messages--;
+		*tail = ((*tail) + 1) % MAX_MESSAGE;
+
+		mqtt_send.ring_buffer.count--;
 
 	}
 }
