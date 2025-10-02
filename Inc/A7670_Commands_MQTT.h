@@ -20,7 +20,6 @@ extern void (*MQTT_Callback_Response)(MQTT_RESPONSE mqtt_resp);
 CMD_Status A7670_MQTT_Register_Callback_Response(void (*callback_function)(MQTT_RESPONSE mqtt_resp));
 
 CMD_Status A7670_MQTT_ConfigMQTT( uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS);
-CMD_Status A7670_MQTT_PublishMessage( const char* topic, const char* message_payload);
 CMD_Status A7670_MQTT_SubscribeTopic(char* topic);
 void A7670_MQTT_ReadNewMessages();
 
@@ -33,15 +32,18 @@ CMD_Status A7670_MQTT_CMD_Payload(void);
 CMD_Status A7670_MQTT_CMD_Publish(void);
 CMD_Status A7670_MQTT_CMD_SubTopic(void);
 CMD_Status A7670_MQTT_CMD_ConfirmSubTopic(void);
-CMD_Status A7670_MQTT_ProcessResponse();
+CMD_Status A7670_MQTT_PublishHandler( const char* topic, const char* message_payload);
+CMD_Status A7670_MQTT_ResponseHandler();
 
 uint8_t A7670_MQTT_QueueIsFull(RingBuffer *ring_buffer);
 uint8_t A7670_MQTT_QueueIsEmpty(RingBuffer *ring_buffer);
 CMD_Status A7670_MQTT_QueuePushMessage(char *mqttMessage);
 CMD_Status A7670_MQTT_QueuePopMessage();
 
-void A7670_MQTT_PushPubMessage(const char* topic, const char* payload);
+CMD_Status A7670_MQTT_PublishMessage(const char* topic, const char* payload);
 void A7670_MQTT_PubQueueMessages();
+
+CMD_Status A7670_MQTT_Handler();
 
 
 

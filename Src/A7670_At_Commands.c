@@ -24,7 +24,7 @@ CMD_Status A7670_Pocess_Buffer()
 			return CMD_OK;
 		break;
 		case AT_RT_MQTT_Response:
-			A7670_MQTT_ProcessResponse();
+			A7670_MQTT_ResponseHandler();
 		break;
 		case AT_RT_Response:
 			//at.response = at.response_buffer;

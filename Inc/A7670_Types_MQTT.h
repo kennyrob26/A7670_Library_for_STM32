@@ -11,8 +11,12 @@
 #include <stdint.h>
 #include <AT_Handler.h>
 
-#define MAX_MESSAGE 3
+#define MAX_MQTT_RECEIVE_MESSAGE 3
 #define SIZE_MESSAGE 100
+#define MAX_MQTT_SEND_MESSAGE 5
+#define TOPIC_SIZE 20
+#define PAYLOAD_SIZE 20
+
 
 
 typedef enum
@@ -45,9 +49,8 @@ typedef struct MQTT_Client
 
 typedef struct MQTT_Message
 {
-	uint8_t QoS;
-	char topic[20];
-	char payload[20];
+	char topic[TOPIC_SIZE];
+	char payload[PAYLOAD_SIZE];
 
 }MQTT_Message;
 
@@ -58,6 +61,7 @@ typedef struct MQTT_Broker
 	uint16_t kepp_alive;
 	uint8_t clear_session;
 	uint8_t status;
+	uint8_t QoS;
 }MQTT_Broker;
 
 typedef struct MQTT
@@ -77,14 +81,14 @@ typedef struct
 
 typedef struct
 {
-	MQTT_Message message[5];
+	MQTT_Message message[MAX_MQTT_SEND_MESSAGE];
 	RingBuffer ring_buffer;
     uint32_t start_tick;
 } MqttRingBufferSend;
 
 typedef struct
 {
-    char message[MAX_MESSAGE][SIZE_MESSAGE];
+    char message[MAX_MQTT_RECEIVE_MESSAGE][SIZE_MESSAGE];
     RingBuffer ring_buffer;
 } MqttRingBufferResponse;
 
@@ -93,10 +97,9 @@ typedef struct MQTT_RESPONSE
 {
 	volatile MqttRingBufferResponse queue;
 	volatile char last_message[BUFFER_LENGTH];
-    uint8_t client_id;
-    char topic[20];
+	uint8_t client_id;
+	MQTT_Message message;
     uint8_t topic_lentgth;
-    char payload[20];
     uint8_t payload_length;
     uint8_t end;
 }MQTT_RESPONSE;

@@ -24,13 +24,7 @@ CMD_Status A7670_MQTT_configMQTT(uint8_t client_id, char *client_name, char *bro
 	strcpy(mqtt.broker.adress, broker_adress);
 	mqtt.broker.kepp_alive = keep_alive;
 	mqtt.broker.clear_session = clear_session;
-	mqtt.message.QoS = QoS;
-
-
-	//mqtt_send.count_messages = 0;
-	//mqtt_send.start_tick = 0;
-	//mqtt_send.head = 0;
-	//mqtt_send.tail = 0;
+	mqtt.broker.QoS = QoS;
 
 	MQTT_Connect_State mqtt_state = MQTT_START;
 
@@ -106,9 +100,8 @@ CMD_Status A7670_MQTT_CMD_Connect(void)
 		return CMD_ERROR;
 }
 
-CMD_Status A7670_MQTT_PublishMessage(const char* topic, const char* message_payload)
+CMD_Status A7670_MQTT_PublishHandler(const char* topic, const char* message_payload)
 {
-	//HAL_Delay(500);
 	strcpy(mqtt.message.topic, topic);
 	strcpy(mqtt.message.payload, message_payload);
 
@@ -153,7 +146,6 @@ CMD_Status A7670_MQTT_CMD_Pub_Topic(void)
 	sprintf(at.at_command, "%s%d,%d", "AT+CMQTTTOPIC=", mqtt.client.id, topic_length);
 	if(AT_sendCommand(">", 30) == AT_OK)
 	{
-		//HAL_Delay(50);
 		strcpy(at.at_command, mqtt.message.topic);
 
 		if(AT_sendCommand("OK", 30) == AT_OK)
@@ -180,8 +172,7 @@ CMD_Status A7670_MQTT_CMD_Payload(void)
 
 CMD_Status A7670_MQTT_CMD_Publish(void)
 {
-	//strcpy(at->at_command, "AT+CMQTTPUB=0,1,60");
-	sprintf(at.at_command, "%s%d,%d,%d", "AT+CMQTTPUB=", mqtt.client.id, mqtt.message.QoS, mqtt.broker.kepp_alive);
+	sprintf(at.at_command, "%s%d,%d,%d", "AT+CMQTTPUB=", mqtt.client.id, mqtt.broker.QoS, mqtt.broker.kepp_alive);
 	if(AT_sendCommand("CMQTTPUB: 0,0", 50) == AT_OK)
 		return CMD_OK;
 	else
@@ -202,7 +193,7 @@ CMD_Status A7670_MQTT_subscribeTopic(char* topic)
 CMD_Status A7670_MQTT_CMD_SubTopic(void)
 {
 	uint8_t topic_length = strlen(mqtt.message.topic);
-	sprintf(at.at_command, "%s%d,%d,%d", "AT+CMQTTSUBTOPIC=", mqtt.client.id, topic_length, mqtt.message.QoS);
+	sprintf(at.at_command, "%s%d,%d,%d", "AT+CMQTTSUBTOPIC=", mqtt.client.id, topic_length, mqtt.broker.QoS);
 	if(AT_sendCommand("", 0) == AT_OK)
 	{
 		HAL_Delay(50);
@@ -233,7 +224,7 @@ CMD_Status A7670_MQTT_Register_Callback_Response(void (*callback_function)(MQTT_
 		return CMD_ERROR;
 }
 
-CMD_Status A7670_MQTT_ProcessResponse()
+CMD_Status A7670_MQTT_ResponseHandler()
 {
 	uint8_t index = 0;
 	while(mqtt_resp.last_message[index] != '\0')
@@ -269,10 +260,10 @@ CMD_Status A7670_MQTT_ProcessResponse()
 		mqtt_resp.payload_length = atoi(ptr);
 
 	if(topic != NULL)
-		strcpy(mqtt_resp.topic, topic);
+		strcpy(mqtt_resp.message.topic, topic);
 
 	if(payload != NULL)
-		strcpy(mqtt_resp.payload, payload);
+		strcpy(mqtt_resp.message.payload, payload);
 
 	end = strtok(end, " ");
 	if((ptr = strtok(NULL, " ")) != NULL)
@@ -289,7 +280,7 @@ CMD_Status A7670_MQTT_ProcessResponse()
 
 uint8_t A7670_MQTT_QueueIsFull(RingBuffer *ring_buffer)
 {
-    if(ring_buffer->count >= MAX_MESSAGE)
+    if(ring_buffer->count >= MAX_MQTT_RECEIVE_MESSAGE)
         return 1;
     else
         return 0;
@@ -312,7 +303,7 @@ CMD_Status A7670_MQTT_QueuePushMessage(char *mqttMessage)
 
         strcpy((char*)mqtt_resp.queue.message[*head], (char*)mqttMessage);
 
-       *head = ((*head) + 1) % MAX_MESSAGE;
+       *head = ((*head) + 1) % MAX_MQTT_RECEIVE_MESSAGE;
 
         (*count)++;
 
@@ -330,7 +321,7 @@ CMD_Status A7670_MQTT_QueuePopMessage()
     	uint8_t *count = (uint8_t*) &mqtt_resp.queue.ring_buffer.count;
         strcpy((char*)mqtt_resp.last_message, (char*)mqtt_resp.queue.message[*tail]);
 
-        *tail = ((*tail) + 1) % MAX_MESSAGE;
+        *tail = ((*tail) + 1) % MAX_MQTT_RECEIVE_MESSAGE;
 
         (*count)--;
 
@@ -349,15 +340,15 @@ void A7670_MQTT_ReadNewMessages()
 	while(A7670_MQTT_QueueIsEmpty(&mqtt_resp.queue.ring_buffer) != 1 && ((HAL_GetTick() - start_tick) < 100))
 	{
 		if(A7670_MQTT_QueuePopMessage() == CMD_OK)
-			A7670_MQTT_ProcessResponse();
+			A7670_MQTT_ResponseHandler();
 	}
 }
 
 
 
-void A7670_MQTT_PushPubMessage(const char* topic, const char* payload)
+CMD_Status A7670_MQTT_PublishMessage(const char* topic, const char* payload)
 {
-	if(mqtt_send.ring_buffer.count < MAX_MESSAGE)
+	if(mqtt_send.ring_buffer.count < MAX_MQTT_SEND_MESSAGE)
 	{
 		uint8_t *head = &mqtt_send.ring_buffer.head;
 		char* mqtt_topic = mqtt_send.message[*head].topic;
@@ -366,28 +357,43 @@ void A7670_MQTT_PushPubMessage(const char* topic, const char* payload)
 		strcpy(mqtt_topic, topic);
 		strcpy(mqtt_payload, payload);
 
-		*head = ((*head) + 1) % MAX_MESSAGE;
+		*head = ((*head) + 1) % MAX_MQTT_SEND_MESSAGE;
 		mqtt_send.ring_buffer.count++;
+
+		return CMD_OK;
 	}
+	else
+		return CMD_ERROR;
 }
 
 void A7670_MQTT_PubQueueMessages()
 {
-	if(mqtt_send.ring_buffer.count > 0 && ((HAL_GetTick() - mqtt_send.start_tick) > 500))
+	if(A7670_MQTT_QueueIsEmpty(&mqtt_send.ring_buffer) == 0)
 	{
-		uint8_t *tail = &mqtt_send.ring_buffer.tail;
-		char* topic = mqtt_send.message[*tail].topic;
-		char* payload = mqtt_send.message[*tail].payload;
+		if((HAL_GetTick() - mqtt_send.start_tick) > 500)
+		{
+			uint8_t *tail = &mqtt_send.ring_buffer.tail;
+			char* topic = mqtt_send.message[*tail].topic;
+			char* payload = mqtt_send.message[*tail].payload;
 
-		A7670_MQTT_PublishMessage(topic, payload);
+			A7670_MQTT_PublishHandler(topic, payload);
 
-		mqtt_send.start_tick = HAL_GetTick();
+			mqtt_send.start_tick = HAL_GetTick();
 
-		*tail = ((*tail) + 1) % MAX_MESSAGE;
+			*tail = ((*tail) + 1) % MAX_MQTT_SEND_MESSAGE;
 
-		mqtt_send.ring_buffer.count--;
+			mqtt_send.ring_buffer.count--;
 
+		}
 	}
+}
+
+CMD_Status A7670_MQTT_Handler()
+{
+	A7670_MQTT_PubQueueMessages();
+	A7670_MQTT_ReadNewMessages();
+
+	return CMD_OK;
 }
 
 
