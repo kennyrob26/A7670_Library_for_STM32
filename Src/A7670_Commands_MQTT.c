@@ -6,16 +6,28 @@
  */
 #include "A7670_Commands_MQTT.h"
 
-#define MAX_SEND_MESSAGE 5
 MqttRingBufferSend mqtt_send;
-
-
 MQTT mqtt;
 MQTT_RESPONSE mqtt_resp;
 
 void (*MQTT_Callback_Response)(MQTT_RESPONSE mqtt_resp);
 
-
+/**
+ * @brief A complete MQTT configure
+ * 
+ * A state machine that starts, configures, and connects to an MQTT broker
+ * 
+ * @param client_id It is the client ID and is unique for each client
+ * @param client_name It is the client name
+ * @param broker_adress The broker MQTT adress (tcp://broker.com:1883)
+ * @param keep_alive The keep alive of connection in seconds (use 60s with default)
+ * @param clear_session uses 1 for a clear connection
+ * @param QoS Defines QoS values, 0 at 2
+ * 
+ * @return CMD_Status
+ * @retval CMD_OK if it was possible to connect correctly to the broker
+ * @retval CMD_ERROR if we are unable to connect to the broker
+ */
 
 CMD_Status A7670_MQTT_configMQTT(uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS)
 {
@@ -73,7 +85,18 @@ CMD_Status A7670_MQTT_configMQTT(uint8_t client_id, char *client_name, char *bro
 	return CMD_OK;
 }
 
-
+/**
+ * @brief Start MQTT
+ * 
+ *  This command start MQTT cominication
+ * 	uses AT command CMQTTSTART
+ * 
+ *  IMPORTANT: MQTT may take a few seconds to initialize (~5s)
+ * 
+ * @return CMD_Status
+ * @retval CMD_OK if the MQTT module could be started
+ * @retval CMD_ERROR if unable to start MQTT connection
+ */
 
 CMD_Status A7670_MQTT_CMD_Start()
 {
@@ -83,6 +106,16 @@ CMD_Status A7670_MQTT_CMD_Start()
 	else
 		return CMD_ERROR;
 }
+
+/**
+ * @brief Sets the name and id of the client MQTT
+ * 
+ * The parameters must be previously set in:
+ *	-mqtt.client.id
+ *	-mqtt.client.name
+ *
+ * @return CMD_Status
+ */
 CMD_Status A7670_MQTT_CMD_AcquireClient(void)
 {
 	sprintf(at.at_command, "%s%d,\"%s\"", "AT+CMQTTACCQ=", mqtt.client.id, mqtt.client.name);
@@ -91,6 +124,16 @@ CMD_Status A7670_MQTT_CMD_AcquireClient(void)
 	else
 		return CMD_ERROR;
 }
+
+/**
+ * @brief Creates a connection with to broker
+ * 
+ * This command depends on: 
+ * - the MQTT module being active (A7670_MQTT_CMD_Start)
+ * - an existing client (7670 MQTT_CMD_AcquireClient)
+ * 
+ * in addition, the struct MQTT mqtt must be configured
+ */
 CMD_Status A7670_MQTT_CMD_Connect(void)
 {
 	sprintf(at.at_command, "%s%d,\"%s\",%d,%d", "AT+CMQTTCONNECT=", mqtt.client.id, mqtt.broker.adress, mqtt.broker.kepp_alive, mqtt.broker.clear_session);
@@ -139,6 +182,16 @@ CMD_Status A7670_MQTT_PublishHandler(const char* topic, const char* message_payl
 
 }
 
+/**
+ * @brief sets a topic for publish MQTT Message
+ * 
+ * Use AT command CMQTTTOPIC command to set the publishing topic
+ * The parameters must be set to:
+ *  -mqtt.message.topic -> is a topic name
+ * Waiting response "OK"
+ * 
+ * @return CMD_Status
+ */
 
 CMD_Status A7670_MQTT_CMD_Pub_Topic(void)
 {
@@ -155,7 +208,16 @@ CMD_Status A7670_MQTT_CMD_Pub_Topic(void)
 
 }
 
-
+/**
+ * @brief sets a payload for publish MQTT Message
+ * 
+ * Uses AT command CMQTTPAYLOAD for set message payload
+ * The parameter must be set to:
+ * 		-mqtt.message.payload -> is a payload to message
+ * Waiting response "OK"
+ * 
+ * @return CMD_Status
+ */
 CMD_Status A7670_MQTT_CMD_Payload(void)
 {
 	uint8_t payload_length = strlen(mqtt.message.payload);
@@ -170,6 +232,18 @@ CMD_Status A7670_MQTT_CMD_Payload(void)
 	return CMD_ERROR;
 }
 
+/**
+ * @brief Publish a MQTT Message
+ * 
+ * IMPORTANT: It is necessary to define the topic and payload before publishing
+ * 		-set topic: A7670_MQTT_CMD_Topic()
+ * 		-set payload: A7670_MQTT_CMD_Payload()
+ * 
+ * Uses the AT CMQTTPUB command to publish the defined payload to the defined topic
+ * 
+ * @return CMD_Status 
+ */
+
 CMD_Status A7670_MQTT_CMD_Publish(void)
 {
 	sprintf(at.at_command, "%s%d,%d,%d", "AT+CMQTTPUB=", mqtt.client.id, mqtt.broker.QoS, mqtt.broker.kepp_alive);
@@ -178,6 +252,18 @@ CMD_Status A7670_MQTT_CMD_Publish(void)
 	else
 		return CMD_ERROR;
 }
+
+/**
+ * @brief Subscribe a MQTT topic
+ * 
+ * Subscribes the client defined in mqtt.client.id to the defined topic
+ * 
+ * @param topic the topic we want to subscribe to
+ * 
+ * @return CMD_Satus
+ * @retval CMD_OK if possible subscribe to the topic
+ * @retval CMD_ERROR if not possible subscribe to the topic
+ */
 
 CMD_Status A7670_MQTT_subscribeTopic(char* topic)
 {
@@ -189,6 +275,21 @@ CMD_Status A7670_MQTT_subscribeTopic(char* topic)
 	}
 	return CMD_ERROR;
 }
+
+/**
+ * @brief Sets a topic subscribe
+ * 
+ * 	sets a topic subscribe using CMQTTSUBTOPIC
+ * 	defines which topic we want to subscribe to, 
+ *  but you still need to confirm the subscription
+ * 	with A7670_MQTT_CMD_ConfirmSubTopic.
+ * 
+ *  the topic must be previously set in mqtt.client.topic
+ * 
+ * Waiting "OK"
+ * 
+ * @return CMD_Status
+ */
 
 CMD_Status A7670_MQTT_CMD_SubTopic(void)
 {
@@ -205,6 +306,15 @@ CMD_Status A7670_MQTT_CMD_SubTopic(void)
 	return CMD_ERROR;
 }
 
+/**
+ * @brief Confirm subscription to the defined topic
+ * 
+ * Confirm subscription to the defined topic in function A7670_MQTT_CMD_SubTopic()
+ * Use command AT CMQTTSUB=0
+ * 
+ * Waiting "CMQTTSUB: 0,0"
+ * @return CMD_Status
+ */
 CMD_Status A7670_MQTT_CMD_ConfirmSubTopic(void)
 {
 	strcpy(at.at_command, "AT+CMQTTSUB=0");
@@ -214,6 +324,14 @@ CMD_Status A7670_MQTT_CMD_ConfirmSubTopic(void)
 		return CMD_ERROR;
 }
 
+/**
+ * @brief registers a Callback function to handle MQTT responses
+ * 
+ * The callback function receives an MQTT_RESPONSE mqtt_resp 
+ * with the content of the last message received, among which we can highlight:
+ * 		-mqtt_resp.message.topic -> Contains the topic of message
+ * 		-mqtt_resp.message.payload -> Contains the payload of message
+ */
 CMD_Status A7670_MQTT_Register_Callback_Response(void (*callback_function)(MQTT_RESPONSE mqtt_resp))
 {
 	MQTT_Callback_Response = callback_function;
@@ -344,8 +462,19 @@ void A7670_MQTT_ReadNewMessages()
 	}
 }
 
-
-
+/**
+ * @brief schedule the publication of a message
+ * 
+ * The A7670 module needs a delay between one published message and another,
+ * then we schedule the message on the queue which will be published later by A7670_MQTT_PubQueueMessages()
+ * 
+ * @param topic the topic where the message will be published
+ * @param payload the payload of message
+ * 
+ * @return CMD_Status
+ * @retval CMD_OK if the message is scheduled in the queue
+ * @retval CMD_ERROR if not possible scheduled message
+ */
 CMD_Status A7670_MQTT_PublishMessage(const char* topic, const char* payload)
 {
 	if(mqtt_send.ring_buffer.count < MAX_MQTT_SEND_MESSAGE)
@@ -366,6 +495,12 @@ CMD_Status A7670_MQTT_PublishMessage(const char* topic, const char* payload)
 		return CMD_ERROR;
 }
 
+/**
+ * @brief Publish a next message in queue
+ * 
+ * The A7670 module needs a delay between one published message and another
+ * This function publishes a message from the queue every 500 ms
+ */
 void A7670_MQTT_PubQueueMessages()
 {
 	if(A7670_MQTT_QueueIsEmpty(&mqtt_send.ring_buffer) == 0)
@@ -387,6 +522,13 @@ void A7670_MQTT_PubQueueMessages()
 		}
 	}
 }
+
+/**
+ * @brief Handles the queue of incoming messages and messages that need to be sent
+ * 
+ * This is an important function, where we handle both sending and receiving MQTT messages.
+ * IMPORTANT: you must ensure that the function is always called in the loop to ensure correct functioning of MQTT
+ */
 
 CMD_Status A7670_MQTT_Handler()
 {

@@ -11,10 +11,15 @@
 #include "string.h"
 #include "stdint.h"
 #include "stdlib.h"
-#include "stm32g4xx_hal.h"
+
+#if defined(STM32G431xx)
+	#include "stm32g4xx_hal.h"
+#endif
 
 #define BUFFER_LENGTH 150
 #define TIMEOUT 50
+
+typedef struct __UART_HandleTypeDef UART_HandleTypeDef;
 
 typedef enum
 {
@@ -61,6 +66,8 @@ typedef struct AT_INFO
 }AT_INFO;
 
 extern AT_INFO at;
+
+
 
 
 

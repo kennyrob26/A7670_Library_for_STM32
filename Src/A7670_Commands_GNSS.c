@@ -17,6 +17,13 @@ GNSS gnss;
 
 /*================= -- Static Functions -- =====================*/
 
+
+/**
+ * @brief Private Function -> Calcule Latitude
+ * 
+ *	 A private function that calculates Latitude with base GNSS data.
+ *	 Converts degress/minutes Latitude to decimal Latitude
+ */
 static float calculateLatitude(char *latitude_nema, char *N_or_S)
 {
     if(strlen(latitude_nema) && strlen(N_or_S))
@@ -41,6 +48,12 @@ static float calculateLatitude(char *latitude_nema, char *N_or_S)
 
 }
 
+/**
+ * @brief Private Function -> Calcule Longitude
+ * 
+ *	 A private function that calculates Longitude with base GNSS data.
+ *	 Converts degress/minutes Longitude to decimal Longitude
+ */
 static float calculateLongitude(char *longitude_nema, char *E_or_W)
 {
     if(strlen(longitude_nema) && strlen(E_or_W))
@@ -64,6 +77,12 @@ static float calculateLongitude(char *longitude_nema, char *E_or_W)
     return(0);
 }
 
+/**
+ * @brief Private Function -> Calcule speed in Km/H
+ * 
+ *	 A private function that calculates speed with base GNSS data.
+ *	 Converts knots to km/h
+ */
 static float calculateSpeedKmh(char* speed_kont)
 {
 	float speed_kontf = atof(speed_kont);
@@ -78,6 +97,15 @@ static float calculateSpeedKmh(char* speed_kont)
 		return 0;
 }
 
+/**
+ * @brief Private Function -> Scrolls through NMEA data
+ * 
+ * 	* This function finds delimiter for NMEA values.
+ * 	* The function handles one value per call, where "value" is the current value to be handled,
+ *    and "previous_value" was the previous value.
+ * 	*When we finish processing the current value we point to the next one, and thus close the cycle
+ * 	
+ */
 static void nextValueNmea(char **value, char *previous_value)
 {
     if(previous_value != NULL)
@@ -91,7 +119,11 @@ static void nextValueNmea(char **value, char *previous_value)
     }
 }
 
-
+/**
+ * @brief Private Function -> Handles NMEA values
+ * 
+ * 	This function finds delimiter for NMEA values
+ */
 static void readNMEA(char *dataNMEA)
 {
 	strcpy(nmea.command, dataNMEA);
@@ -119,6 +151,17 @@ static void readNMEA(char *dataNMEA)
 
 }
 
+
+/**
+ * @brief Start to GNSS
+ * 
+ * 	A State Machine that start GNSS
+ * 	The State machine ollow the sequence:
+ * 	
+ * 	1. PWR -> Start the GNSS Module
+ * 	2. AGPS -> tries to connect to the AGPS server for a fast fix
+ *  3. PORTSWITCH -> allows NMEA data to be sent via UART
+ */
 
 CMD_Status A7670_GNSS_Init()
 {
