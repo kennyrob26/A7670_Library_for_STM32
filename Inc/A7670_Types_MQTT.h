@@ -15,7 +15,7 @@
 #define SIZE_MESSAGE 100
 #define MAX_MQTT_SEND_MESSAGE 5
 #define TOPIC_SIZE 20
-#define PAYLOAD_SIZE 20
+#define PAYLOAD_SIZE 40
 
 
 

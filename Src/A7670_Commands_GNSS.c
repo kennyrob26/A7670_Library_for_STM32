@@ -282,8 +282,7 @@ CMD_Status A7670_GNSS_CMD_CGPSINFO()
 
 	if(AT_sendCommand("OK", 10) == AT_OK)
 	{
-		processAtCommand();
-		readNMEA(at.response);
+		readNMEA(at.response_buffer);
 		return CMD_OK;
 	}
 	return CMD_ERROR;

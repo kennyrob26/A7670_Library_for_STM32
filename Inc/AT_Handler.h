@@ -36,14 +36,6 @@ typedef enum
 	CMD_OK    = 1
 } CMD_Status;
 
-typedef enum AT_ResponseType
-{
-    AT_RT_Echo_Command  = 0,
-    AT_RT_Response      = 1,
-    AT_RT_MQTT_Response = 2,
-    AT_RT_NULL          = 3
-}AT_ResponseType;
-
 typedef struct AT_Wait_Response
 {
 	uint32_t start_tick;
@@ -57,9 +49,6 @@ typedef struct AT_INFO
 	UART_HandleTypeDef *huart;
 	char at_command[50];
 	volatile uint8_t response_buffer[BUFFER_LENGTH];
-    char *echo;
-    char *response;
-    char *OK;
     uint8_t status;
     volatile uint8_t existMessage;
     AT_Wait_Response wait_response;
