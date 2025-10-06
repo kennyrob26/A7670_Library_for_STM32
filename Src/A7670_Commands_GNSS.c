@@ -227,9 +227,7 @@ CMD_Status A7670_GNSS_Init()
  */
 CMD_Status A7670_GNSS_CMD_CGNSSPWR()
 {
-	strcpy(at.at_command, "AT+CGNSSPWR=1");
-
-	if(AT_sendCommand("READY!", 15000) == AT_OK)
+	if(AT_sendCommand("AT+CGNSSPWR=1", "READY!", 15000) == AT_OK)
 			return CMD_OK;
 	else
 		return CMD_ERROR;
@@ -246,8 +244,7 @@ CMD_Status A7670_GNSS_CMD_CGNSSPWR()
  */
 CMD_Status A7670_GNSS_CMD_CAGPS()
 {
-	strcpy(at.at_command, "AT+CAGPS");
-	if(AT_sendCommand("success", 5000) == AT_OK)
+	if(AT_sendCommand("AT+CAGPS", "success", 5000) == AT_OK)
 		return CMD_OK;
 	else
 		return CMD_ERROR;
@@ -262,8 +259,7 @@ CMD_Status A7670_GNSS_CMD_CAGPS()
  */
 CMD_Status A7670_GNSS_CMD_CGNSSPORTSWITCH()
 {
-	strcpy(at.at_command, "AT+CGNSSPORTSWITCH=1,1");
-	if (AT_sendCommand("", 0) == AT_OK)
+	if (AT_sendCommand("AT+CGNSSPORTSWITCH=1,1", "", 0) == AT_OK)
 		return CMD_OK;
 
 	return CMD_ERROR;
@@ -278,11 +274,9 @@ CMD_Status A7670_GNSS_CMD_CGNSSPORTSWITCH()
  */
 CMD_Status A7670_GNSS_CMD_CGPSINFO()
 {
-	strcpy(at.at_command, "AT+CGPSINFO");
-
-	if(AT_sendCommand("OK", 10) == AT_OK)
+	if(AT_sendCommand("AT+CGPSINFO", "OK", 10) == AT_OK)
 	{
-		readNMEA(at.response_buffer);
+		readNMEA((char*)at.response_buffer);
 		return CMD_OK;
 	}
 	return CMD_ERROR;

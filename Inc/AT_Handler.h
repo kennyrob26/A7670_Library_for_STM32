@@ -11,6 +11,7 @@
 #include "string.h"
 #include "stdint.h"
 #include "stdlib.h"
+#include "stdio.h"
 
 #if defined(STM32G431xx)
 	#include "stm32g4xx_hal.h"
@@ -47,7 +48,7 @@ typedef struct AT_Wait_Response
 typedef struct AT_INFO
 {
 	UART_HandleTypeDef *huart;
-	char at_command[50];
+	char at_command[100];
 	volatile uint8_t response_buffer[BUFFER_LENGTH];
     uint8_t status;
     volatile uint8_t existMessage;
@@ -68,7 +69,7 @@ AT_Status AT_defineUART(UART_HandleTypeDef *huartx);
 AT_Status AT_configWaitResponse(const char *expected_response, uint32_t timeout);
 AT_Status AT_checkWaitResponse();
 AT_Status AT_checkWaitResponse_Blocking();
-AT_Status AT_sendCommand(char *expected_response, uint16_t timeout);
+AT_Status AT_sendCommand(const char *command, const char *expected_response, uint16_t timeout);
 AT_Status AT_existNewMessage(uint16_t timeout);
 
 

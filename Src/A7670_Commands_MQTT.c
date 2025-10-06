@@ -29,7 +29,7 @@ void (*MQTT_Callback_Response)(MQTT_RESPONSE mqtt_resp);
  * @retval CMD_ERROR if we are unable to connect to the broker
  */
 
-CMD_Status A7670_MQTT_configMQTT(uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS)
+CMD_Status A7670_MQTT_ConfigMQTT(uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS)
 {
 	mqtt.client.id 	 = client_id;
 	strcpy(mqtt.client.name, client_name);
@@ -100,8 +100,10 @@ CMD_Status A7670_MQTT_configMQTT(uint8_t client_id, char *client_name, char *bro
 
 CMD_Status A7670_MQTT_CMD_Start()
 {
-	strcpy(at.at_command, "AT+CMQTTSTART");
-	if(AT_sendCommand("CMQTTSTART: 0", 9000) == AT_OK)
+	const char command[] 			= "AT+CMQTTSTART";
+	const char expected_response[]  = "CMQTTSTART: 0";
+
+	if(AT_sendCommand(command, expected_response, 9000) == AT_OK)
 		return CMD_OK;
 	else
 		return CMD_ERROR;
@@ -118,8 +120,11 @@ CMD_Status A7670_MQTT_CMD_Start()
  */
 CMD_Status A7670_MQTT_CMD_AcquireClient(void)
 {
-	sprintf(at.at_command, "%s%d,\"%s\"", "AT+CMQTTACCQ=", mqtt.client.id, mqtt.client.name);
-	if(AT_sendCommand("OK", 5000) ==  AT_OK)
+	char command[50];
+	sprintf(command, "%s%d,\"%s\"", "AT+CMQTTACCQ=", mqtt.client.id, mqtt.client.name);
+	const char expected_response[] = "OK";
+
+	if(AT_sendCommand(command, expected_response, 5000) ==  AT_OK)
 		return CMD_OK;
 	else
 		return CMD_ERROR;
@@ -136,8 +141,11 @@ CMD_Status A7670_MQTT_CMD_AcquireClient(void)
  */
 CMD_Status A7670_MQTT_CMD_Connect(void)
 {
-	sprintf(at.at_command, "%s%d,\"%s\",%d,%d", "AT+CMQTTCONNECT=", mqtt.client.id, mqtt.broker.adress, mqtt.broker.kepp_alive, mqtt.broker.clear_session);
-	if(AT_sendCommand("CMQTTCONNECT: 0,0", 5000) == AT_OK)
+	char command[100];
+	sprintf(command, "%s%d,\"%s\",%d,%d", "AT+CMQTTCONNECT=", mqtt.client.id, mqtt.broker.adress, mqtt.broker.kepp_alive, mqtt.broker.clear_session);
+	const char expected_response[] = "CMQTTCONNECT: 0,0";
+
+	if(AT_sendCommand(command, expected_response , 5000) == AT_OK)
 		return CMD_OK;
 	else
 		return CMD_ERROR;
@@ -196,12 +204,13 @@ CMD_Status A7670_MQTT_PublishHandler(const char* topic, const char* message_payl
 CMD_Status A7670_MQTT_CMD_Pub_Topic(void)
 {
 	uint8_t topic_length   = strlen(mqtt.message.topic);
-	sprintf(at.at_command, "%s%d,%d", "AT+CMQTTTOPIC=", mqtt.client.id, topic_length);
-	if(AT_sendCommand(">", 30) == AT_OK)
-	{
-		strcpy(at.at_command, mqtt.message.topic);
+	char command[50];
+	sprintf(command, "%s%d,%d", "AT+CMQTTTOPIC=", mqtt.client.id, topic_length);
 
-		if(AT_sendCommand("OK", 30) == AT_OK)
+	if(AT_sendCommand(command, ">", 30) == AT_OK)
+	{
+		strcpy(command, mqtt.message.topic);
+		if(AT_sendCommand(command, "OK", 30) == AT_OK)
 			return CMD_OK;
 	}
 	return CMD_ERROR;
@@ -221,11 +230,13 @@ CMD_Status A7670_MQTT_CMD_Pub_Topic(void)
 CMD_Status A7670_MQTT_CMD_Payload(void)
 {
 	uint8_t payload_length = strlen(mqtt.message.payload);
-	sprintf(at.at_command, "%s%d,%d", "AT+CMQTTPAYLOAD=", mqtt.client.id, payload_length);
-	if(AT_sendCommand(">", 30) == AT_OK)
+	char command[100];
+	sprintf(command, "%s%d,%d", "AT+CMQTTPAYLOAD=", mqtt.client.id, payload_length);
+
+	if(AT_sendCommand(command, ">", 30) == AT_OK)
 	{
-		strcpy(at.at_command, mqtt.message.payload);
-		if(AT_sendCommand("OK", 30) == AT_OK)
+		strcpy(command, mqtt.message.payload);
+		if(AT_sendCommand(command, "OK", 30) == AT_OK)
 				return CMD_OK;
 
 	}
@@ -246,8 +257,9 @@ CMD_Status A7670_MQTT_CMD_Payload(void)
 
 CMD_Status A7670_MQTT_CMD_Publish(void)
 {
-	sprintf(at.at_command, "%s%d,%d,%d", "AT+CMQTTPUB=", mqtt.client.id, mqtt.broker.QoS, mqtt.broker.kepp_alive);
-	if(AT_sendCommand("CMQTTPUB: 0,0", 50) == AT_OK)
+	char command[50];
+	sprintf(command, "%s%d,%d,%d", "AT+CMQTTPUB=", mqtt.client.id, mqtt.broker.QoS, mqtt.broker.kepp_alive);
+	if(AT_sendCommand(command, "CMQTTPUB: 0,0", 50) == AT_OK)
 		return CMD_OK;
 	else
 		return CMD_ERROR;
@@ -265,7 +277,7 @@ CMD_Status A7670_MQTT_CMD_Publish(void)
  * @retval CMD_ERROR if not possible subscribe to the topic
  */
 
-CMD_Status A7670_MQTT_subscribeTopic(char* topic)
+CMD_Status A7670_MQTT_SubscribeTopic(char* topic)
 {
 	strcpy(mqtt.message.topic, topic);
 	if(A7670_MQTT_CMD_SubTopic() == CMD_OK)
@@ -294,12 +306,13 @@ CMD_Status A7670_MQTT_subscribeTopic(char* topic)
 CMD_Status A7670_MQTT_CMD_SubTopic(void)
 {
 	uint8_t topic_length = strlen(mqtt.message.topic);
-	sprintf(at.at_command, "%s%d,%d,%d", "AT+CMQTTSUBTOPIC=", mqtt.client.id, topic_length, mqtt.broker.QoS);
-	if(AT_sendCommand("", 0) == AT_OK)
+	char command[50];
+	sprintf(command, "%s%d,%d,%d", "AT+CMQTTSUBTOPIC=", mqtt.client.id, topic_length, mqtt.broker.QoS);
+	if(AT_sendCommand(command, "", 0) == AT_OK)
 	{
 		HAL_Delay(50);
-		strcpy(at.at_command, mqtt.message.topic);
-		if(AT_sendCommand("OK", 1500) == AT_OK)
+		strcpy(command, mqtt.message.topic);
+		if(AT_sendCommand(command, "OK", 1500) == AT_OK)
 			return CMD_OK;
 
 	}
@@ -317,8 +330,8 @@ CMD_Status A7670_MQTT_CMD_SubTopic(void)
  */
 CMD_Status A7670_MQTT_CMD_ConfirmSubTopic(void)
 {
-	strcpy(at.at_command, "AT+CMQTTSUB=0");
-	if(AT_sendCommand("CMQTTSUB: 0,0", 1500) == AT_OK)
+	const char command[] = "AT+CMQTTSUB=0";
+	if(AT_sendCommand(command, "CMQTTSUB: 0,0", 1500) == AT_OK)
 		return CMD_OK;
 	else
 		return CMD_ERROR;
@@ -414,7 +427,7 @@ uint8_t A7670_MQTT_QueueIsEmpty(RingBuffer *ring_buffer)
 
 CMD_Status A7670_MQTT_QueuePushMessage(char *mqttMessage)
 {
-    if(A7670_MQTT_QueueIsFull(&mqtt_resp.queue.ring_buffer) == 0)
+    if(A7670_MQTT_QueueIsFull((RingBuffer*)&mqtt_resp.queue.ring_buffer) == 0)
     {
     	uint8_t *head  = (uint8_t*) &mqtt_resp.queue.ring_buffer.head;
     	uint8_t *count = (uint8_t*) &mqtt_resp.queue.ring_buffer.count;
@@ -433,7 +446,7 @@ CMD_Status A7670_MQTT_QueuePushMessage(char *mqttMessage)
 
 CMD_Status A7670_MQTT_QueuePopMessage()
 {
-    if(A7670_MQTT_QueueIsEmpty(&mqtt_resp.queue.ring_buffer) == 0)
+    if(A7670_MQTT_QueueIsEmpty((RingBuffer*)&mqtt_resp.queue.ring_buffer) == 0)
     {
     	uint8_t *tail  = (uint8_t*) &mqtt_resp.queue.ring_buffer.tail;
     	uint8_t *count = (uint8_t*) &mqtt_resp.queue.ring_buffer.count;
@@ -455,7 +468,7 @@ CMD_Status A7670_MQTT_QueuePopMessage()
 void A7670_MQTT_ReadNewMessages()
 {
 	uint32_t start_tick = HAL_GetTick();
-	while(A7670_MQTT_QueueIsEmpty(&mqtt_resp.queue.ring_buffer) != 1 && ((HAL_GetTick() - start_tick) < 100))
+	while(A7670_MQTT_QueueIsEmpty((RingBuffer*)&mqtt_resp.queue.ring_buffer) != 1 && ((HAL_GetTick() - start_tick) < 100))
 	{
 		if(A7670_MQTT_QueuePopMessage() == CMD_OK)
 			A7670_MQTT_ResponseHandler();

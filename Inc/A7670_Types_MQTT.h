@@ -9,6 +9,7 @@
 #define INC_A7670_LIBRARY_FOR_STM32_A7670_TYPES_MQTT_H_
 
 #include <stdint.h>
+#include "stdio.h"
 #include <AT_Handler.h>
 
 #define MAX_MQTT_RECEIVE_MESSAGE 3

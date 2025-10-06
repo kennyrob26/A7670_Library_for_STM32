@@ -152,8 +152,10 @@ AT_Status AT_checkWaitResponse_Blocking()
  * @retval AT_NOT_RESPONSE if the command is sent but the expected response is not found
  */
 
-AT_Status AT_sendCommand(char *expected_response, uint16_t timeout)
+AT_Status AT_sendCommand(const char *command, const char *expected_response, uint16_t timeout)
 {
+
+	strcpy(at.at_command, command);
 	uint8_t exist_expected_response = strlen(expected_response);
 	uint8_t length = strlen(at.at_command);
 
