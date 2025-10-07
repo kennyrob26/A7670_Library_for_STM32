@@ -48,8 +48,8 @@ typedef struct AT_Wait_Response
 typedef struct AT_INFO
 {
 	UART_HandleTypeDef *huart;
-	char at_command[100];
-	volatile uint8_t response_buffer[BUFFER_LENGTH];
+	char command[100];
+	volatile uint8_t response[BUFFER_LENGTH];
     uint8_t status;
     volatile uint8_t existMessage;
     AT_Wait_Response wait_response;

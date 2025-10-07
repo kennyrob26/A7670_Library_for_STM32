@@ -13,31 +13,74 @@ MQTT_RESPONSE mqtt_resp;
 void (*MQTT_Callback_Response)(MQTT_RESPONSE mqtt_resp);
 
 /**
- * @brief A complete MQTT configure
- * 
- * A state machine that starts, configures, and connects to an MQTT broker
- * 
+ * @brief Set MQTT Client
  * @param client_id It is the client ID and is unique for each client
  * @param client_name It is the client name
+ * @return CMD_Status
+ */
+CMD_Status A7670_MQTT_setClient(uint8_t client_id, char *client_name)
+{
+	if(client_name == NULL || strcmp(client_name, "") == 0)
+		return CMD_ERROR;
+
+	mqtt.client.id 	 = client_id;
+	strcpy(mqtt.client.name, client_name);
+
+	return CMD_OK;
+}
+
+/**
+ * @brief Set MQTT Broker
  * @param broker_adress The broker MQTT adress (tcp://broker.com:1883)
  * @param keep_alive The keep alive of connection in seconds (use 60s with default)
  * @param clear_session uses 1 for a clear connection
  * @param QoS Defines QoS values, 0 at 2
- * 
  * @return CMD_Status
- * @retval CMD_OK if it was possible to connect correctly to the broker
- * @retval CMD_ERROR if we are unable to connect to the broker
  */
-
-CMD_Status A7670_MQTT_ConfigMQTT(uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS)
+CMD_Status A7670_MQTT_SetBroker(char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS)
 {
-	mqtt.client.id 	 = client_id;
-	strcpy(mqtt.client.name, client_name);
+	if(broker_adress == NULL || strcmp(broker_adress, "") == 0)
+		return CMD_ERROR;
+
 	strcpy(mqtt.broker.adress, broker_adress);
 	mqtt.broker.kepp_alive = keep_alive;
 	mqtt.broker.clear_session = clear_session;
 	mqtt.broker.QoS = QoS;
 
+	return CMD_OK;
+}
+
+/**
+ * @brief Set MQTT Username and Password
+ * @param username auth username
+ * @param password auth password
+ * @return CMD_Status
+ */
+CMD_Status A7670_MQTT_SetAuth(char* username, char* password)
+{
+	if(username == NULL || strcmp(username, ""))
+		return CMD_ERROR;
+
+	if(password == NULL)
+		return CMD_ERROR;
+
+	strcpy(mqtt.auth.username, username);
+	strcpy(mqtt.auth.password, password);
+
+	return CMD_OK;
+ }
+
+/**
+ * @brief A complete MQTT configure
+ * 
+ * A state machine that starts, configures, and connects to an MQTT broker
+
+ * @return CMD_Status
+ * @retval CMD_OK if it was possible to connect correctly to the broker
+ * @retval CMD_ERROR if we are unable to connect to the broker
+ */
+CMD_Status A7670_MQTT_ConfigMQTT()
+{
 	MQTT_Connect_State mqtt_state = MQTT_START;
 
 	while(mqtt_state != MQTT_OK)

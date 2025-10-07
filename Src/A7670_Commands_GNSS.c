@@ -276,7 +276,7 @@ CMD_Status A7670_GNSS_CMD_CGPSINFO()
 {
 	if(AT_sendCommand("AT+CGPSINFO", "OK", 10) == AT_OK)
 	{
-		readNMEA((char*)at.response_buffer);
+		readNMEA((char*)at.response);
 		return CMD_OK;
 	}
 	return CMD_ERROR;

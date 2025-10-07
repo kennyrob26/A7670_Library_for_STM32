@@ -48,6 +48,12 @@ typedef struct MQTT_Client
 	char name[20];
 }MQTT_Client;
 
+typedef struct MQTT_Auth
+{
+	char username[20];
+	char password[30];
+}MQTT_Auth;
+
 typedef struct MQTT_Message
 {
 	char topic[TOPIC_SIZE];
@@ -70,6 +76,7 @@ typedef struct MQTT
 	MQTT_Client client;
 	MQTT_Message message;
 	MQTT_Broker broker;
+	MQTT_Auth auth;
 
 }MQTT;
 

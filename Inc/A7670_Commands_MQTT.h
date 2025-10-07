@@ -19,7 +19,11 @@ extern void (*MQTT_Callback_Response)(MQTT_RESPONSE mqtt_resp);
 
 CMD_Status A7670_MQTT_Register_Callback_Response(void (*callback_function)(MQTT_RESPONSE mqtt_resp));
 
-CMD_Status A7670_MQTT_ConfigMQTT( uint8_t client_id, char *client_name, char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS);
+CMD_Status A7670_MQTT_setClient(uint8_t client_id, char *client_name);
+CMD_Status A7670_MQTT_SetBroker(char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS);
+CMD_Status A7670_MQTT_SetAuth(char* username, char* password);
+
+CMD_Status A7670_MQTT_ConfigMQTT();
 CMD_Status A7670_MQTT_SubscribeTopic(char* topic);
 void A7670_MQTT_ReadNewMessages();
 

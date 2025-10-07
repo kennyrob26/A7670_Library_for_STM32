@@ -14,14 +14,14 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
 	if (huart == at.huart)
 	{
-		at.response_buffer[Size] = '\0';
+		at.response[Size] = '\0';
 
-		if(strstr(at.response_buffer, "+CMQTTRXEND: 0") != NULL)
-			A7670_MQTT_QueuePushMessage(at.response_buffer);
+		if(strstr((char*)at.response, "+CMQTTRXEND: 0") != NULL)
+			A7670_MQTT_QueuePushMessage(at.response);
 		else
 			at.existMessage = 1;
 
-		HAL_UARTEx_ReceiveToIdle_DMA(at.huart, (uint8_t*)at.response_buffer, BUFFER_LENGTH);
+		HAL_UARTEx_ReceiveToIdle_DMA(at.huart, (uint8_t*)at.response, BUFFER_LENGTH);
 	}
 
 }
@@ -34,7 +34,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
         __HAL_UART_CLEAR_NEFLAG(at.huart);
         __HAL_UART_CLEAR_OREFLAG(at.huart);
 
-        HAL_UARTEx_ReceiveToIdle_DMA(at.huart, (uint8_t*)at.response_buffer, BUFFER_LENGTH);
+        HAL_UARTEx_ReceiveToIdle_DMA(at.huart, (uint8_t*)at.response, BUFFER_LENGTH);
     }
 }
 
@@ -54,7 +54,7 @@ AT_Status AT_defineUART(UART_HandleTypeDef *huartx)
 	at.huart = huartx;
 	if(at.huart != NULL)
 	{
-		HAL_UARTEx_ReceiveToIdle_DMA(huartx, (uint8_t*)at.response_buffer, BUFFER_LENGTH);
+		HAL_UARTEx_ReceiveToIdle_DMA(huartx, (uint8_t*)at.response, BUFFER_LENGTH);
 		return AT_OK;
 	}
 	else
@@ -91,7 +91,7 @@ AT_Status AT_checkWaitResponse()
 
 	if(at.existMessage == 1)
 	{
-		if(strstr((char*)at.response_buffer, at.wait_response.expected_response) != NULL)			//Significa que a mensagem contém o Token procurado
+		if(strstr((char*)at.response, at.wait_response.expected_response) != NULL)			//Significa que a mensagem contém o Token procurado
 		{
 			at.existMessage = 0;
 			at.wait_response.waiting_status = 0;
@@ -155,14 +155,14 @@ AT_Status AT_checkWaitResponse_Blocking()
 AT_Status AT_sendCommand(const char *command, const char *expected_response, uint16_t timeout)
 {
 
-	strcpy(at.at_command, command);
+	strcpy(at.command, command);
 	uint8_t exist_expected_response = strlen(expected_response);
-	uint8_t length = strlen(at.at_command);
+	uint8_t length = strlen(at.command);
 
-	at.at_command[length]     = '\r';
-	at.at_command[length + 1] = '\0';
+	at.command[length]     = '\r';
+	at.command[length + 1] = '\0';
 
-	if(HAL_UART_Transmit(at.huart, (uint8_t*)at.at_command, length+1, 100) != HAL_OK)
+	if(HAL_UART_Transmit(at.huart, (uint8_t*)at.command, length+1, 100) != HAL_OK)
 	{
 		return AT_ERROR;
 	}

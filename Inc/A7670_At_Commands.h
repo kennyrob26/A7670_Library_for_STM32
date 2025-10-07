@@ -20,8 +20,8 @@ CMD_Status A7670_CMD_Creset();
 CMD_Status A7670_Pocess_Buffer();
 
 CMD_Status A7670_CMD_SSLConfigVersion(uint8_t ctx_index, uint8_t ssl_version);
-CMD_Status A7670_SSLConfigAuthMode(uint8_t ctx_index, uint8_t auth_mode);
-CMD_Status A7670_SSLConfigCacert(uint8_t ctx_index, const char* ca_name);
-CMD_Status A7670_SSLConfigSNI(uint8_t ctx_index, uint8_t enable_SNI);
+CMD_Status A7670_CMD_SSLConfigAuthMode(uint8_t ctx_index, uint8_t auth_mode);
+CMD_Status A7670_CMD_SSLConfigCacert(uint8_t ctx_index, const char* ca_name);
+CMD_Status A7670_CMD_SSLConfigSNI(uint8_t ctx_index, uint8_t enable_SNI);
 
 #endif /* INC_A7670_AT_COMMANDS_H_ */
