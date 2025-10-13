@@ -23,13 +23,17 @@ CMD_Status A7670_MQTT_setClient(uint8_t client_id, char *client_name);
 CMD_Status A7670_MQTT_SetBroker(char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS);
 CMD_Status A7670_MQTT_SetAuth(char* username, char* password);
 
-CMD_Status A7670_MQTT_ConfigMQTT();
+CMD_Status A7670_MQTT_Connect();
+CMD_Status A7670_MQTT_Disconnect();
 CMD_Status A7670_MQTT_SubscribeTopic(char* topic);
 void A7670_MQTT_ReadNewMessages();
 
 CMD_Status A7670_MQTT_CMD_Start(void);
+CMD_Status A7670_MQTT_CMD_Stop(void);
 CMD_Status A7670_MQTT_CMD_AcquireClient(void);
+CMD_Status A7670_MQTT_CMD_ReleaseClient(void);
 CMD_Status A7670_MQTT_CMD_Connect(void);
+CMD_Status A7670_MQTT_CMD_Disconnect(void);
 
 CMD_Status A7670_MQTT_CMD_Pub_Topic(void);
 CMD_Status A7670_MQTT_CMD_Payload(void);

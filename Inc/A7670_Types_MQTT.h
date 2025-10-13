@@ -18,6 +18,32 @@
 #define TOPIC_SIZE 20
 #define PAYLOAD_SIZE 40
 
+typedef enum
+{
+	MQTT_CONNECT_OK    = 0,
+	MQTT_CHECK_NETWORK = 1,
+	MQTT_START         = 2,
+	MQTT_ACCQ          = 3,
+	MQTT_CONNECT       = 4,
+	MQTT_CONNECT_ERROR = 5
+
+}MQTT_Connect_State;
+
+typedef enum
+{
+	MQTT_DISCONNECT_OK  = 0,
+	MQTT_DISCONNECT     = 1,
+	MQTT_REALESE_CLIENT = 2,
+	MQTT_STOP           = 3
+}MQTT_Disconnect_State;
+
+typedef enum
+{
+	MQTT_BROKER_DISCONNECT    = 0,
+	MQTT_BROKER_CONNECTING    = 1,
+	MQTT_BROKER_CONNECTED     = 2,
+	MQTT_BROKER_DISCONNECTING = 3
+} MQTT_Broker_State;
 
 
 typedef enum
@@ -30,15 +56,7 @@ typedef enum
 
 }Publish_Message_state;
 
-typedef enum
-{
-	MQTT_OK      = 0,
-	MQTT_START   = 1,
-	MQTT_ACCQ    = 2,
-	MQTT_CONNECT = 3,
-	MQTT_RESET_MODULE
 
-}MQTT_Connect_State;
 
 //=================== -- Structs -- =======================
 
@@ -77,6 +95,7 @@ typedef struct MQTT
 	MQTT_Message message;
 	MQTT_Broker broker;
 	MQTT_Auth auth;
+	MQTT_Broker_State broker_state;
 
 }MQTT;
 

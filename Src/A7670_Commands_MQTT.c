@@ -5,10 +5,12 @@
  *      Author: kenny
  */
 #include "A7670_Commands_MQTT.h"
+#include "A7670_Commands_SIM.h"
 
 MqttRingBufferSend mqtt_send;
 MQTT mqtt;
 MQTT_RESPONSE mqtt_resp;
+
 
 void (*MQTT_Callback_Response)(MQTT_RESPONSE mqtt_resp);
 
@@ -28,6 +30,8 @@ CMD_Status A7670_MQTT_setClient(uint8_t client_id, char *client_name)
 
 	return CMD_OK;
 }
+
+
 
 /**
  * @brief Set MQTT Broker
@@ -71,53 +75,64 @@ CMD_Status A7670_MQTT_SetAuth(char* username, char* password)
  }
 
 /**
- * @brief A complete MQTT configure
+ * @brief connects to the MQTT broker
+ *
+ * A state machine that connects to the MQTT broker
  * 
- * A state machine that starts, configures, and connects to an MQTT broker
 
  * @return CMD_Status
  * @retval CMD_OK if it was possible to connect correctly to the broker
  * @retval CMD_ERROR if we are unable to connect to the broker
  */
-CMD_Status A7670_MQTT_ConfigMQTT()
+CMD_Status A7670_MQTT_Connect()
 {
-	MQTT_Connect_State mqtt_state = MQTT_START;
+	mqtt.broker_state = MQTT_BROKER_CONNECTING;
+	//MQTT_Connect_State mqtt_connect_state = MQTT_START;
+	MQTT_Connect_State mqtt_connect_state = MQTT_CHECK_NETWORK;
 
-	while(mqtt_state != MQTT_OK)
+	while(mqtt_connect_state != MQTT_CONNECT_OK)
 	{
-		switch (mqtt_state)
+		switch (mqtt_connect_state)
 		{
+			case MQTT_CHECK_NETWORK:
+				if(A7670_SIM_Check_Network() == CMD_OK)
+				{
+					mqtt_connect_state = MQTT_START;
+				}
+			break;
 			case MQTT_START:
 				if(A7670_MQTT_CMD_Start() == CMD_OK)
 				{
-					mqtt_state = MQTT_ACCQ;
+					mqtt_connect_state = MQTT_ACCQ;
 				}
 				else
 				{
-					mqtt_state = MQTT_RESET_MODULE;
+					mqtt_connect_state = MQTT_CONNECT_ERROR;
 				}
 			break;
 			case MQTT_ACCQ:
-				if(A7670_MQTT_CMD_AcquireClient())
+				if(A7670_MQTT_CMD_AcquireClient() == CMD_OK)
 				{
-					mqtt_state = MQTT_CONNECT;
+					mqtt_connect_state = MQTT_CONNECT;
 				}
 				else
 				{
-					mqtt_state = MQTT_RESET_MODULE;
+					mqtt_connect_state = MQTT_CONNECT_ERROR;
 				}
 			break;
 			case MQTT_CONNECT:
-				if(A7670_MQTT_CMD_Connect())
+				if(A7670_MQTT_CMD_Connect() == CMD_OK)
 				{
-					mqtt_state = MQTT_OK;
+					mqtt.broker_state = MQTT_BROKER_CONNECTED;
+					mqtt_connect_state = MQTT_CONNECT_OK;
 				}
 				else
 				{
-					mqtt_state = MQTT_RESET_MODULE;
+					mqtt_connect_state = MQTT_CONNECT_ERROR;
 				}
 			break;
-			case MQTT_RESET_MODULE:
+			case MQTT_CONNECT_ERROR:
+				mqtt.broker_state = MQTT_BROKER_DISCONNECT;
 				return CMD_ERROR;
 			default:
 				return CMD_ERROR;
@@ -126,6 +141,35 @@ CMD_Status A7670_MQTT_ConfigMQTT()
 		}
 	}
 	return CMD_OK;
+}
+
+CMD_Status A7670_MQTT_Disconnect()
+{
+	mqtt.broker_state = MQTT_BROKER_DISCONNECTING;
+	MQTT_Disconnect_State mqtt_disconnect_state = MQTT_DISCONNECT;
+
+	while(mqtt_disconnect_state != MQTT_DISCONNECT_OK)
+	{
+		switch (mqtt_disconnect_state) {
+			case MQTT_DISCONNECT:
+				if(A7670_MQTT_CMD_Disconnect() == CMD_OK)
+					mqtt_disconnect_state = MQTT_REALESE_CLIENT;
+			break;
+			case MQTT_REALESE_CLIENT:
+				if(A7670_MQTT_CMD_ReleaseClient() == CMD_OK)
+					mqtt_disconnect_state = MQTT_STOP;
+			break;
+			case MQTT_STOP:
+				if(A7670_MQTT_CMD_Stop() == CMD_OK)
+					mqtt_disconnect_state = MQTT_DISCONNECT_OK;
+			break;
+			default:
+				break;
+		}
+	}
+
+	return CMD_OK;
+
 }
 
 /**
@@ -153,6 +197,24 @@ CMD_Status A7670_MQTT_CMD_Start()
 }
 
 /**
+ * @brief Stop MQTT
+ *
+ * This command stop MQTT communication
+ * uses AT+CMQTTSTOP
+ *
+ * must be used after AT+CMQTTDISC and AT+CMQTTREL
+ *
+ */
+CMD_Status A7670_MQTT_CMD_Stop(void)
+{
+	char command[] = "AT+CMQTTSTOP";
+	if(AT_sendCommand(command, "OK", 500))
+		return CMD_OK;
+
+	return CMD_ERROR;
+}
+
+/**
  * @brief Sets the name and id of the client MQTT
  * 
  * The parameters must be previously set in:
@@ -168,6 +230,24 @@ CMD_Status A7670_MQTT_CMD_AcquireClient(void)
 	const char expected_response[] = "OK";
 
 	if(AT_sendCommand(command, expected_response, 5000) ==  AT_OK)
+		return CMD_OK;
+	else
+		return CMD_ERROR;
+}
+
+/**
+ * @brief remove all settings from the current client
+ *
+ * This command is used when we want to end communication with the MQTT broker, or reset the client settings
+ * Must be used before AT+CMQTTSTOP and after AT+CMQTTDISC
+ */
+CMD_Status A7670_MQTT_CMD_ReleaseClient(void)
+{
+	char command[20];
+	sprintf(command, "AT+CMQTTREL=%d", mqtt.client.id);
+	const char expected_response[] = "OK";
+
+	if(AT_sendCommand(command, expected_response, 500))
 		return CMD_OK;
 	else
 		return CMD_ERROR;
@@ -193,6 +273,28 @@ CMD_Status A7670_MQTT_CMD_Connect(void)
 	else
 		return CMD_ERROR;
 }
+
+/**
+ * @brief Disconnet from the broker MQTT
+ *
+ * This command is used befor AT+CMQTTREL and AT+CMQTTSTOP
+ */
+
+CMD_Status A7670_MQTT_CMD_Disconnect(void)
+{
+	char command[30];
+	sprintf(command, "AT+CMQTTDISC=%d,%d", mqtt.client.id, 60);
+	const char expected_response[] = "+CMQTTDISC: 0,0";
+
+	if(AT_sendCommand(command, expected_response , 2000) == AT_OK)
+	{
+		mqtt.broker_state = MQTT_BROKER_DISCONNECT;
+		return CMD_OK;
+	}
+	else
+		return CMD_ERROR;
+}
+
 
 CMD_Status A7670_MQTT_PublishHandler(const char* topic, const char* message_payload)
 {
@@ -223,6 +325,7 @@ CMD_Status A7670_MQTT_PublishHandler(const char* topic, const char* message_payl
 					pub_msg_state = MSG_RESET_MODULE;
 			break;
 			case MSG_RESET_MODULE:
+				mqtt.broker_state = MQTT_BROKER_DISCONNECT;
 				return CMD_ERROR;
 			default:
 				return CMD_ERROR;

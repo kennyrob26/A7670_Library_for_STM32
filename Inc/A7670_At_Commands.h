@@ -11,6 +11,7 @@
 #include <AT_Handler.h>
 #include "A7670_Commands_MQTT.h"
 #include "A7670_Commands_GNSS.h"
+#include "A7670_Commands_SIM.h"
 #include "A7670_MQTT_Publish.h"
 #include <stdio.h>
 #include <stdlib.h>
