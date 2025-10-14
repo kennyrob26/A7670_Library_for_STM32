@@ -84,8 +84,9 @@ CMD_Status A7670_MQTT_SetAuth(char* username, char* password)
  * @retval CMD_OK if it was possible to connect correctly to the broker
  * @retval CMD_ERROR if we are unable to connect to the broker
  */
-CMD_Status A7670_MQTT_Connect()
+MQTT_Connect_Response A7670_MQTT_Connect()
 {
+	MQTT_Connect_Response response;
 	mqtt.broker_state = MQTT_BROKER_CONNECTING;
 	//MQTT_Connect_State mqtt_connect_state = MQTT_START;
 	MQTT_Connect_State mqtt_connect_state = MQTT_CHECK_NETWORK;
@@ -99,6 +100,11 @@ CMD_Status A7670_MQTT_Connect()
 				{
 					mqtt_connect_state = MQTT_START;
 				}
+				else
+				{
+					response = MQTT_CON_ERROR_NO_NETWORK;
+					mqtt_connect_state = MQTT_CONNECT_ERROR;
+				}
 			break;
 			case MQTT_START:
 				if(A7670_MQTT_CMD_Start() == CMD_OK)
@@ -107,6 +113,7 @@ CMD_Status A7670_MQTT_Connect()
 				}
 				else
 				{
+					response =  MQTT_CON_ERROR_STARTING_MODULE;
 					mqtt_connect_state = MQTT_CONNECT_ERROR;
 				}
 			break;
@@ -117,7 +124,9 @@ CMD_Status A7670_MQTT_Connect()
 				}
 				else
 				{
+					response = MQTT_CON_ERROR_NO_CLIENT;
 					mqtt_connect_state = MQTT_CONNECT_ERROR;
+
 				}
 			break;
 			case MQTT_CONNECT:
@@ -128,19 +137,20 @@ CMD_Status A7670_MQTT_Connect()
 				}
 				else
 				{
+					response = MQTT_CON_ERROR_NO_BROKER;
 					mqtt_connect_state = MQTT_CONNECT_ERROR;
 				}
 			break;
 			case MQTT_CONNECT_ERROR:
 				mqtt.broker_state = MQTT_BROKER_DISCONNECT;
-				return CMD_ERROR;
+				return response;
 			default:
-				return CMD_ERROR;
+				return MQTT_CON_ERROR;
 				break;
 
 		}
 	}
-	return CMD_OK;
+	return MQTT_CON_OK;
 }
 
 CMD_Status A7670_MQTT_Disconnect()
@@ -405,7 +415,7 @@ CMD_Status A7670_MQTT_CMD_Publish(void)
 {
 	char command[50];
 	sprintf(command, "%s%d,%d,%d", "AT+CMQTTPUB=", mqtt.client.id, mqtt.broker.QoS, mqtt.broker.kepp_alive);
-	if(AT_sendCommand(command, "CMQTTPUB: 0,0", 50) == AT_OK)
+	if(AT_sendCommand(command, "CMQTTPUB: 0,0", 500) == AT_OK)
 		return CMD_OK;
 	else
 		return CMD_ERROR;
@@ -689,12 +699,24 @@ void A7670_MQTT_PubQueueMessages()
  * IMPORTANT: you must ensure that the function is always called in the loop to ensure correct functioning of MQTT
  */
 
-CMD_Status A7670_MQTT_Handler()
+CMD_Status A7670_MQTT_Handler(uint8_t auto_reconnect)
 {
-	A7670_MQTT_PubQueueMessages();
-	A7670_MQTT_ReadNewMessages();
-
-	return CMD_OK;
+	if(mqtt.broker_state == MQTT_BROKER_CONNECTED)
+	{
+		A7670_MQTT_PubQueueMessages();
+		A7670_MQTT_ReadNewMessages();
+		return CMD_OK;
+	}
+	else if(auto_reconnect == 1)
+	{
+		if(A7670_MQTT_Disconnect() == CMD_OK)
+		{
+			MQTT_Connect_Response response = A7670_MQTT_Connect();
+			if(response == MQTT_CON_OK)
+				return CMD_OK;
+		}
+	}
+	return CMD_ERROR;
 }
 
 

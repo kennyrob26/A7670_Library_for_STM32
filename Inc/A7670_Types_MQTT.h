@@ -18,6 +18,9 @@
 #define TOPIC_SIZE 20
 #define PAYLOAD_SIZE 40
 
+#define ENABLE_AUTO_RECONNECT 1
+#define DISABLE_AUTO_RECONNECT 0
+
 typedef enum
 {
 	MQTT_CONNECT_OK    = 0,
@@ -28,6 +31,16 @@ typedef enum
 	MQTT_CONNECT_ERROR = 5
 
 }MQTT_Connect_State;
+
+typedef enum
+{
+	MQTT_CON_OK                    = 0,
+	MQTT_CON_ERROR                 = 1,
+	MQTT_CON_ERROR_NO_NETWORK      = 2,
+	MQTT_CON_ERROR_STARTING_MODULE = 3,
+	MQTT_CON_ERROR_NO_CLIENT       = 4,
+	MQTT_CON_ERROR_NO_BROKER       = 5
+}MQTT_Connect_Response;
 
 typedef enum
 {
