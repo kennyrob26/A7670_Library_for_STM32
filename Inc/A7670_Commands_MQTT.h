@@ -23,7 +23,8 @@ CMD_Status A7670_MQTT_setClient(uint8_t client_id, char *client_name);
 CMD_Status A7670_MQTT_SetBroker(char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS);
 CMD_Status A7670_MQTT_SetAuth(char* username, char* password);
 
-MQTT_Connect_Response A7670_MQTT_Connect();
+MQTT_Status A7670_MQTT_Connect(MQTT_Auto_Reconnect state);
+CMD_Status A7670_MQTT_SetAutoReconnect(MQTT_Auto_Reconnect state);
 CMD_Status A7670_MQTT_Disconnect();
 CMD_Status A7670_MQTT_SubscribeTopic(char* topic);
 void A7670_MQTT_ReadNewMessages();
@@ -32,7 +33,9 @@ CMD_Status A7670_MQTT_CMD_Start(void);
 CMD_Status A7670_MQTT_CMD_Stop(void);
 CMD_Status A7670_MQTT_CMD_AcquireClient(void);
 CMD_Status A7670_MQTT_CMD_ReleaseClient(void);
-CMD_Status A7670_MQTT_CMD_Connect(void);
+void A7670_MQTT_SetSSL(MQTT_SSL_State ssl_status);
+CMD_Status A7670_MQTT_CMD_SSLConfig(void);
+MQTT_Status A7670_MQTT_CMD_Connect(void);
 CMD_Status A7670_MQTT_CMD_Disconnect(void);
 
 CMD_Status A7670_MQTT_CMD_Pub_Topic(void);
@@ -51,7 +54,9 @@ CMD_Status A7670_MQTT_QueuePopMessage();
 CMD_Status A7670_MQTT_PublishMessage(const char* topic, const char* payload);
 void A7670_MQTT_PubQueueMessages();
 
-CMD_Status A7670_MQTT_Handler(uint8_t auto_reconnect);
+CMD_Status A7670_MQTT_Handler();
+MQTT_Status A7670_MQTT_TranslateErrorCode(uint8_t code_error);
+MQTT_Status A7670_MQTT_CheckErrorCode();
 
 
 

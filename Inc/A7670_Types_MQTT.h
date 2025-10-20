@@ -18,17 +18,15 @@
 #define TOPIC_SIZE 20
 #define PAYLOAD_SIZE 40
 
-#define ENABLE_AUTO_RECONNECT 1
-#define DISABLE_AUTO_RECONNECT 0
-
 typedef enum
 {
 	MQTT_CONNECT_OK    = 0,
 	MQTT_CHECK_NETWORK = 1,
 	MQTT_START         = 2,
 	MQTT_ACCQ          = 3,
-	MQTT_CONNECT       = 4,
-	MQTT_CONNECT_ERROR = 5
+	MQTT_SSL_CONFIG    = 4,
+	MQTT_CONNECT       = 5,
+	MQTT_CONNECT_ERROR = 6
 
 }MQTT_Connect_State;
 
@@ -36,11 +34,15 @@ typedef enum
 {
 	MQTT_CON_OK                    = 0,
 	MQTT_CON_ERROR                 = 1,
-	MQTT_CON_ERROR_NO_NETWORK      = 2,
+	MQTT_CON_ERROR_NETWORK         = 2,
 	MQTT_CON_ERROR_STARTING_MODULE = 3,
-	MQTT_CON_ERROR_NO_CLIENT       = 4,
-	MQTT_CON_ERROR_NO_BROKER       = 5
-}MQTT_Connect_Response;
+	MQTT_CON_ERROR_CLIENT      	   = 4,
+	MQTT_CON_ERROR_BROKER          = 5,
+	MQTT_CON_ERROR_AUTH		       = 6,
+	MQTT_CON_ERROR_SSL			   = 7,
+	MQTT_CON_ERROR_INVALID_VALUE   = 8,
+	MQTT_CON_ERROR_TIMEOUT         = 9
+}MQTT_Status;
 
 typedef enum
 {
@@ -49,6 +51,25 @@ typedef enum
 	MQTT_REALESE_CLIENT = 2,
 	MQTT_STOP           = 3
 }MQTT_Disconnect_State;
+
+
+typedef enum
+{
+	MQTT_RECONNECT_DISABLE  = 0,
+	MQTT_RECONNECT_ENABLE   = 1
+}MQTT_Auto_Reconnect;
+
+typedef enum
+{
+	MQTT_SSL_DISABLE = 0,
+	MQTT_SSL_ENABLE  = 1
+}MQTT_SSL_State;
+
+typedef enum
+{
+	MQTT_AUTH_DISABLE = 0,
+	MQTT_AUTH_ENABLE  = 1
+}MQTT_Auth_State;
 
 typedef enum
 {
@@ -95,7 +116,7 @@ typedef struct MQTT_Message
 
 typedef struct MQTT_Broker
 {
-	char adress[40];
+	char adress[90];
 	uint16_t kepp_alive;
 	uint8_t clear_session;
 	uint8_t status;
@@ -108,7 +129,10 @@ typedef struct MQTT
 	MQTT_Message message;
 	MQTT_Broker broker;
 	MQTT_Auth auth;
+	MQTT_Auth_State auth_state;
 	MQTT_Broker_State broker_state;
+	MQTT_Auto_Reconnect auto_reconect;
+	MQTT_SSL_State ssl_state;
 
 }MQTT;
 

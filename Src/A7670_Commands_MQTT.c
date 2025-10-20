@@ -62,7 +62,7 @@ CMD_Status A7670_MQTT_SetBroker(char *broker_adress, uint8_t keep_alive, uint8_t
  */
 CMD_Status A7670_MQTT_SetAuth(char* username, char* password)
 {
-	if(username == NULL || strcmp(username, ""))
+	if(username == NULL || strcmp(username, "") == 0)
 		return CMD_ERROR;
 
 	if(password == NULL)
@@ -70,6 +70,8 @@ CMD_Status A7670_MQTT_SetAuth(char* username, char* password)
 
 	strcpy(mqtt.auth.username, username);
 	strcpy(mqtt.auth.password, password);
+
+	mqtt.auth_state = MQTT_AUTH_ENABLE;
 
 	return CMD_OK;
  }
@@ -84,9 +86,10 @@ CMD_Status A7670_MQTT_SetAuth(char* username, char* password)
  * @retval CMD_OK if it was possible to connect correctly to the broker
  * @retval CMD_ERROR if we are unable to connect to the broker
  */
-MQTT_Connect_Response A7670_MQTT_Connect()
+MQTT_Status A7670_MQTT_Connect(MQTT_Auto_Reconnect state)
 {
-	MQTT_Connect_Response response;
+	A7670_MQTT_SetAutoReconnect(state);
+	MQTT_Status response;
 	mqtt.broker_state = MQTT_BROKER_CONNECTING;
 	//MQTT_Connect_State mqtt_connect_state = MQTT_START;
 	MQTT_Connect_State mqtt_connect_state = MQTT_CHECK_NETWORK;
@@ -102,7 +105,7 @@ MQTT_Connect_Response A7670_MQTT_Connect()
 				}
 				else
 				{
-					response = MQTT_CON_ERROR_NO_NETWORK;
+					response = MQTT_CON_ERROR_NETWORK;
 					mqtt_connect_state = MQTT_CONNECT_ERROR;
 				}
 			break;
@@ -120,24 +123,37 @@ MQTT_Connect_Response A7670_MQTT_Connect()
 			case MQTT_ACCQ:
 				if(A7670_MQTT_CMD_AcquireClient() == CMD_OK)
 				{
+					if(mqtt.ssl_state == MQTT_SSL_ENABLE)
+						mqtt_connect_state = MQTT_SSL_CONFIG;
+					else
+						mqtt_connect_state = MQTT_CONNECT;
+				}
+				else
+				{
+					response = MQTT_CON_ERROR_CLIENT;
+					mqtt_connect_state = MQTT_CONNECT_ERROR;
+				}
+			break;
+			case MQTT_SSL_CONFIG:
+				if(A7670_MQTT_CMD_SSLConfig() == CMD_OK)
+				{
 					mqtt_connect_state = MQTT_CONNECT;
 				}
 				else
 				{
-					response = MQTT_CON_ERROR_NO_CLIENT;
+					response = MQTT_CON_ERROR_SSL;
 					mqtt_connect_state = MQTT_CONNECT_ERROR;
-
 				}
 			break;
 			case MQTT_CONNECT:
-				if(A7670_MQTT_CMD_Connect() == CMD_OK)
+				if(A7670_MQTT_CMD_Connect() == MQTT_CON_OK)
 				{
 					mqtt.broker_state = MQTT_BROKER_CONNECTED;
 					mqtt_connect_state = MQTT_CONNECT_OK;
 				}
 				else
 				{
-					response = MQTT_CON_ERROR_NO_BROKER;
+					response = MQTT_CON_ERROR_BROKER;
 					mqtt_connect_state = MQTT_CONNECT_ERROR;
 				}
 			break;
@@ -151,6 +167,13 @@ MQTT_Connect_Response A7670_MQTT_Connect()
 		}
 	}
 	return MQTT_CON_OK;
+}
+
+CMD_Status A7670_MQTT_SetAutoReconnect(MQTT_Auto_Reconnect state)
+{
+	mqtt.auto_reconect = state;
+
+	return CMD_OK;
 }
 
 CMD_Status A7670_MQTT_Disconnect()
@@ -263,6 +286,25 @@ CMD_Status A7670_MQTT_CMD_ReleaseClient(void)
 		return CMD_ERROR;
 }
 
+void A7670_MQTT_SetSSL(MQTT_SSL_State ssl_status)
+{
+	mqtt.ssl_state = ssl_status;
+}
+
+CMD_Status A7670_MQTT_CMD_SSLConfig(void)
+{
+	char command[30] = "AT+CMQTTSSLCFG=0,0";
+	if(AT_sendCommand(command, "OK", 500) == AT_OK)
+	{
+		strcpy(command, "AT+CMQTTCFG=\"argtopic\",0,1,1");
+		if(AT_sendCommand(command, "OK", 1000) == AT_OK)
+		{
+			return CMD_OK;
+		}
+	}
+	return CMD_ERROR;
+}
+
 /**
  * @brief Creates a connection with to broker
  * 
@@ -272,16 +314,49 @@ CMD_Status A7670_MQTT_CMD_ReleaseClient(void)
  * 
  * in addition, the struct MQTT mqtt must be configured
  */
-CMD_Status A7670_MQTT_CMD_Connect(void)
+MQTT_Status A7670_MQTT_CMD_Connect(void)
 {
-	char command[100];
-	sprintf(command, "%s%d,\"%s\",%d,%d", "AT+CMQTTCONNECT=", mqtt.client.id, mqtt.broker.adress, mqtt.broker.kepp_alive, mqtt.broker.clear_session);
-	const char expected_response[] = "CMQTTCONNECT: 0,0";
+	char command[150];
+	if(mqtt.auth_state == MQTT_AUTH_DISABLE)
+	{
+		sprintf(command, "%s%d,\"%s\",%d,%d", "AT+CMQTTCONNECT=", mqtt.client.id, mqtt.broker.adress, mqtt.broker.kepp_alive, mqtt.broker.clear_session);
+	}
+	else if(mqtt.auth_state == MQTT_AUTH_ENABLE)
+	{
+		sprintf(command, "%s%d,\"%s\",%d,%d,\"%s\",\"%s\"", "AT+CMQTTCONNECT=", mqtt.client.id, mqtt.broker.adress, mqtt.broker.kepp_alive, mqtt.broker.clear_session, mqtt.auth.username, mqtt.auth.password);
+	}
 
-	if(AT_sendCommand(command, expected_response , 5000) == AT_OK)
-		return CMD_OK;
+	const char expected_response[] = "CMQTTCONNECT: ";
+
+	if(AT_sendCommand(command, expected_response , 10000) == AT_OK)
+	{
+		MQTT_Status status = A7670_MQTT_CheckErrorCode();
+		return status;
+	}
 	else
-		return CMD_ERROR;
+		return MQTT_CON_ERROR;
+}
+
+MQTT_Status A7670_MQTT_CheckErrorCode()
+{
+    char response[30];
+    strcpy(response, (char*)at.response);
+    char* ptr_id;
+    char* ptr_error;
+    char* end;
+
+    ptr_id = strstr(response, ": ");
+    ptr_id += 2;
+    ptr_error = strstr(ptr_id, ",");
+    *ptr_error = '\0';
+    ptr_error++;
+    end = strstr(ptr_error, "\r");
+    *end = '\0';
+
+    uint8_t id     = atoi(ptr_id);
+    uint8_t error  = atoi(ptr_error);
+
+    return(A7670_MQTT_TranslateErrorCode(error));
 }
 
 /**
@@ -415,7 +490,7 @@ CMD_Status A7670_MQTT_CMD_Publish(void)
 {
 	char command[50];
 	sprintf(command, "%s%d,%d,%d", "AT+CMQTTPUB=", mqtt.client.id, mqtt.broker.QoS, mqtt.broker.kepp_alive);
-	if(AT_sendCommand(command, "CMQTTPUB: 0,0", 500) == AT_OK)
+	if(AT_sendCommand(command, "CMQTTPUB: ", 2000) == AT_OK)
 		return CMD_OK;
 	else
 		return CMD_ERROR;
@@ -699,7 +774,7 @@ void A7670_MQTT_PubQueueMessages()
  * IMPORTANT: you must ensure that the function is always called in the loop to ensure correct functioning of MQTT
  */
 
-CMD_Status A7670_MQTT_Handler(uint8_t auto_reconnect)
+CMD_Status A7670_MQTT_Handler()
 {
 	if(mqtt.broker_state == MQTT_BROKER_CONNECTED)
 	{
@@ -707,11 +782,11 @@ CMD_Status A7670_MQTT_Handler(uint8_t auto_reconnect)
 		A7670_MQTT_ReadNewMessages();
 		return CMD_OK;
 	}
-	else if(auto_reconnect == 1)
+	else if(mqtt.auto_reconect == MQTT_RECONNECT_ENABLE)
 	{
 		if(A7670_MQTT_Disconnect() == CMD_OK)
 		{
-			MQTT_Connect_Response response = A7670_MQTT_Connect();
+			MQTT_Status response = A7670_MQTT_Connect(MQTT_RECONNECT_ENABLE);
 			if(response == MQTT_CON_OK)
 				return CMD_OK;
 		}
@@ -719,5 +794,72 @@ CMD_Status A7670_MQTT_Handler(uint8_t auto_reconnect)
 	return CMD_ERROR;
 }
 
+//6, 12, 13, 18, 22
 
+
+MQTT_Status A7670_MQTT_TranslateErrorCode(uint8_t code_error)
+{
+
+	switch (code_error) {
+		case 0:
+			return MQTT_CON_OK;
+	/*========= -- NETWORK ERROR -- =========*/
+		case 3:  				//sock connect fail
+		case 4:					//sock create fail
+		case 5: 				//sock close fail
+		case 6:					//message receive fail
+		case 7:					//network open fail
+		case 8:					//network close fail
+		case 9:					//network not opened
+		case 11:				//no connection
+		case 15:				//require connection fail
+		case 16:				//sock sending fail
+		case 23:				//network is opened
+		case 24:				//packet fail
+		case 25:				//DNS error
+
+			return MQTT_CON_ERROR_NETWORK;
+
+	/*========= -- CLIENT ERROR -- =========*/
+		case 10:				//client index error
+		case 14:				//client is busy
+		case 19: 				//client is used
+		case 20: 				//client not acquired
+		case 21: 				//client not released
+		case 34:				//Open session failed
+
+			return MQTT_CON_ERROR_CLIENT;
+
+	/*========= -- BROKER ERROR -- =========*/
+		case 26:				//socket is closed by server
+		case 27:				//connection refused: unaccepted protocol version
+		case 28:				//connection refused: identifier rejected
+		case 29:				//connection refused: server unavailable
+
+			return MQTT_CON_ERROR_BROKER;
+
+	/*========= -- AUTH ERROR -- =========*/
+		case 30:				//connection refused: bad user name or password
+		case 31:				//connection refused: not authorized
+			return MQTT_CON_ERROR_AUTH;
+
+	/*========= -- SSL ERROR -- =========*/
+		case 32: 				//handshake fail
+		case 33:				//not set certificate
+			return MQTT_CON_ERROR_SSL;
+
+	/*========= -- INVALID VALUE ERROR -- =========*/
+		case 12:    			//invalid parameter
+		case 13:    			//not supported operation
+		case 18:    			//topic is empty
+		case 22:    			//length out of range
+			return MQTT_CON_ERROR_INVALID_VALUE;
+
+	/*========= -- TIMEOUT ERROR -- =========*/
+		case 17:				//timeout
+			return MQTT_CON_ERROR_TIMEOUT;
+		default:
+			return MQTT_CON_ERROR;
+	}
+}
 
