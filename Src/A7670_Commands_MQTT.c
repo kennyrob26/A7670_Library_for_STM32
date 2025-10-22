@@ -169,6 +169,40 @@ MQTT_Status A7670_MQTT_Connect(MQTT_Auto_Reconnect state)
 	return MQTT_CON_OK;
 }
 
+MQTT_Broker_State A7670_MQTT_CheckBrokerConnection()
+{
+	const char command[] = "AT+CMQTTCONNECT?";
+	const char expected_response[] = "+CMQTTCONNECT: ";
+
+	if(AT_sendCommand(command, expected_response, 2000) == AT_OK)
+	{
+		char response[150];
+		strcpy(response, (char*)at.response);
+		char* ptr_id;
+		char* ptr_adress;
+		char* ptr_end;
+
+		ptr_id = strstr(response, ":");
+		ptr_id += 2;
+
+		ptr_adress = (ptr_id + 1);
+		if(*ptr_adress == ',')
+		{
+			*ptr_adress = '\0';
+			(ptr_adress += 2);
+			ptr_end = ptr_adress;
+			ptr_end = strstr(ptr_adress, "\"");
+			*ptr_end = '\0';
+
+			if(strcmp(mqtt.broker.adress, ptr_adress) == 0)
+			{
+				return MQTT_BROKER_CONNECTED;
+			}
+		}
+	}
+	return MQTT_BROKER_DISCONNECT;
+}
+
 CMD_Status A7670_MQTT_SetAutoReconnect(MQTT_Auto_Reconnect state)
 {
 	mqtt.auto_reconect = state;
@@ -381,7 +415,7 @@ CMD_Status A7670_MQTT_CMD_Disconnect(void)
 }
 
 
-CMD_Status A7670_MQTT_PublishHandler(const char* topic, const char* message_payload)
+MQTT_Status A7670_MQTT_PublishHandler(const char* topic, const char* message_payload)
 {
 	strcpy(mqtt.message.topic, topic);
 	strcpy(mqtt.message.payload, message_payload);
@@ -404,20 +438,17 @@ CMD_Status A7670_MQTT_PublishHandler(const char* topic, const char* message_payl
 					pub_msg_state = MSG_RESET_MODULE;
 			break;
 			case MSG_PUBLISH:
-				if(A7670_MQTT_CMD_Publish() == CMD_OK)
-					pub_msg_state = MSG_OK;
-				else
-					pub_msg_state = MSG_RESET_MODULE;
+				return A7670_MQTT_CMD_Publish();
 			break;
 			case MSG_RESET_MODULE:
-				mqtt.broker_state = MQTT_BROKER_DISCONNECT;
-				return CMD_ERROR;
+				//mqtt.broker_state = MQTT_BROKER_DISCONNECT;
+				return MQTT_CON_ERROR_INVALID_VALUE;
 			default:
-				return CMD_ERROR;
+				return MQTT_CON_ERROR_INVALID_VALUE;
 		}
 	}
 
-	return CMD_OK;
+	return MQTT_CON_ERROR;
 
 }
 
@@ -486,14 +517,16 @@ CMD_Status A7670_MQTT_CMD_Payload(void)
  * @return CMD_Status 
  */
 
-CMD_Status A7670_MQTT_CMD_Publish(void)
+MQTT_Status A7670_MQTT_CMD_Publish(void)
 {
 	char command[50];
 	sprintf(command, "%s%d,%d,%d", "AT+CMQTTPUB=", mqtt.client.id, mqtt.broker.QoS, mqtt.broker.kepp_alive);
-	if(AT_sendCommand(command, "CMQTTPUB: ", 2000) == AT_OK)
-		return CMD_OK;
+	if(AT_sendCommand(command, "CMQTTPUB: ", 3000) == AT_OK)
+	{
+		return A7670_MQTT_CheckErrorCode();
+	}
 	else
-		return CMD_ERROR;
+		return MQTT_CON_ERROR_TIMEOUT;
 }
 
 /**
@@ -755,7 +788,7 @@ void A7670_MQTT_PubQueueMessages()
 			char* topic = mqtt_send.message[*tail].topic;
 			char* payload = mqtt_send.message[*tail].payload;
 
-			A7670_MQTT_PublishHandler(topic, payload);
+			MQTT_Status response = A7670_MQTT_PublishHandler(topic, payload);
 
 			mqtt_send.start_tick = HAL_GetTick();
 
@@ -763,6 +796,12 @@ void A7670_MQTT_PubQueueMessages()
 
 			mqtt_send.ring_buffer.count--;
 
+			if(response != MQTT_CON_OK &&
+			   response != MQTT_CON_ERROR_INVALID_VALUE &&
+			   response != MQTT_CON_ERROR_TIMEOUT)
+			{
+				mqtt.broker_state = MQTT_BROKER_DISCONNECT;
+			}
 		}
 	}
 }
@@ -776,7 +815,7 @@ void A7670_MQTT_PubQueueMessages()
 
 CMD_Status A7670_MQTT_Handler()
 {
-	if(mqtt.broker_state == MQTT_BROKER_CONNECTED)
+	if(A7670_MQTT_CheckBrokerConnection() == MQTT_BROKER_CONNECTED)
 	{
 		A7670_MQTT_PubQueueMessages();
 		A7670_MQTT_ReadNewMessages();

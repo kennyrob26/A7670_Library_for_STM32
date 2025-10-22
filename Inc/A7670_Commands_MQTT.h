@@ -24,6 +24,7 @@ CMD_Status A7670_MQTT_SetBroker(char *broker_adress, uint8_t keep_alive, uint8_t
 CMD_Status A7670_MQTT_SetAuth(char* username, char* password);
 
 MQTT_Status A7670_MQTT_Connect(MQTT_Auto_Reconnect state);
+MQTT_Broker_State A7670_MQTT_CheckBrokerConnection();
 CMD_Status A7670_MQTT_SetAutoReconnect(MQTT_Auto_Reconnect state);
 CMD_Status A7670_MQTT_Disconnect();
 CMD_Status A7670_MQTT_SubscribeTopic(char* topic);
@@ -40,10 +41,10 @@ CMD_Status A7670_MQTT_CMD_Disconnect(void);
 
 CMD_Status A7670_MQTT_CMD_Pub_Topic(void);
 CMD_Status A7670_MQTT_CMD_Payload(void);
-CMD_Status A7670_MQTT_CMD_Publish(void);
+MQTT_Status A7670_MQTT_CMD_Publish(void);
 CMD_Status A7670_MQTT_CMD_SubTopic(void);
 CMD_Status A7670_MQTT_CMD_ConfirmSubTopic(void);
-CMD_Status A7670_MQTT_PublishHandler( const char* topic, const char* message_payload);
+MQTT_Status A7670_MQTT_PublishHandler(const char* topic, const char* message_payload);
 CMD_Status A7670_MQTT_ResponseHandler();
 
 uint8_t A7670_MQTT_QueueIsFull(RingBuffer *ring_buffer);
