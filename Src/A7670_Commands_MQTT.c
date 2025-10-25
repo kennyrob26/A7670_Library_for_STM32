@@ -196,11 +196,13 @@ MQTT_Broker_State A7670_MQTT_CheckBrokerConnection()
 
 			if(strcmp(mqtt.broker.adress, ptr_adress) == 0)
 			{
-				return MQTT_BROKER_CONNECTED;
+				mqtt.broker_state = MQTT_BROKER_CONNECTED;
+				return mqtt.broker_state;
 			}
 		}
 	}
-	return MQTT_BROKER_DISCONNECT;
+	mqtt.broker_state = MQTT_BROKER_DISCONNECT;
+	return mqtt.broker_state;
 }
 
 CMD_Status A7670_MQTT_SetAutoReconnect(MQTT_Auto_Reconnect state)
@@ -210,26 +212,41 @@ CMD_Status A7670_MQTT_SetAutoReconnect(MQTT_Auto_Reconnect state)
 	return CMD_OK;
 }
 
-CMD_Status A7670_MQTT_Disconnect()
+CMD_Status A7670_MQTT_Disconnect(void)
 {
 	mqtt.broker_state = MQTT_BROKER_DISCONNECTING;
-	MQTT_Disconnect_State mqtt_disconnect_state = MQTT_DISCONNECT;
+	MQTT_Disconnect_State mqtt_disconnect_state = MQTT_DISC_DISCONNECT;
 
-	while(mqtt_disconnect_state != MQTT_DISCONNECT_OK)
+	while(mqtt_disconnect_state != MQTT_DISC_DISCONNECT_OK)
 	{
 		switch (mqtt_disconnect_state) {
-			case MQTT_DISCONNECT:
+			case MQTT_DISC_DISCONNECT:
 				if(A7670_MQTT_CMD_Disconnect() == CMD_OK)
-					mqtt_disconnect_state = MQTT_REALESE_CLIENT;
+					mqtt_disconnect_state = MQTT_DISC_REALESE_CLIENT;
 			break;
-			case MQTT_REALESE_CLIENT:
+			case MQTT_DISC_CHECK_ACQUIRE_CLIENT:
+				MQTT_Client_State client_status = A7670_MQTT_CheckAcquireClient();
+				if(client_status == MQTT_CLIENT_ACQUIRED)
+				{
+					mqtt_disconnect_state = MQTT_DISC_REALESE_CLIENT;
+				}
+				else if(client_status == MQTT_CLIENT_NOT_ACQUIRED)
+				{
+					mqtt_disconnect_state = MQTT_DISC_STOP;
+				}
+				else
+					mqtt_disconnect_state = MQTT_DISC_ERROR;
+			break;
+			case MQTT_DISC_REALESE_CLIENT:
 				if(A7670_MQTT_CMD_ReleaseClient() == CMD_OK)
-					mqtt_disconnect_state = MQTT_STOP;
+					mqtt_disconnect_state = MQTT_DISC_STOP;
 			break;
-			case MQTT_STOP:
+			case MQTT_DISC_STOP:
 				if(A7670_MQTT_CMD_Stop() == CMD_OK)
-					mqtt_disconnect_state = MQTT_DISCONNECT_OK;
+					mqtt_disconnect_state = MQTT_DISC_DISCONNECT_OK;
 			break;
+			case MQTT_DISC_ERROR:
+				return CMD_ERROR;
 			default:
 				break;
 		}
@@ -302,6 +319,38 @@ CMD_Status A7670_MQTT_CMD_AcquireClient(void)
 		return CMD_ERROR;
 }
 
+MQTT_Client_State A7670_MQTT_CheckAcquireClient(void)
+{
+    char response[150];
+    strcpy(response, (char*)at.response);
+    char* ptr_id;
+    char* ptr_name;
+    char* ptr_end;
+
+    ptr_id = strstr(response, ":");
+    ptr_id += 2;
+
+    ptr_name = (ptr_id + 1);
+    *ptr_name = '\0';
+    (ptr_name+=2);
+    if(*ptr_name != '\"')
+    {
+        ptr_end = strstr(ptr_name, "\"");
+        *ptr_end = '\0';
+    }
+    else
+    {
+    	*ptr_name = '\0';
+    }
+
+    if(strcmp(ptr_name, mqtt.client.name) == 0)
+    	return MQTT_CLIENT_ACQUIRED;
+    else if(strcmp(ptr_name, "") == 0)
+    	return MQTT_CLIENT_NOT_ACQUIRED;
+
+    return MQTT_CLIENT_ERROR;
+
+}
 /**
  * @brief remove all settings from the current client
  *
@@ -815,7 +864,14 @@ void A7670_MQTT_PubQueueMessages()
 
 CMD_Status A7670_MQTT_Handler()
 {
-	if(A7670_MQTT_CheckBrokerConnection() == MQTT_BROKER_CONNECTED)
+	static uint32_t time_tick = 0;
+	if((HAL_GetTick() - time_tick) > 5000)
+	{
+		//A7670_MQTT_CheckBrokerConnection();
+		time_tick = HAL_GetTick();
+	}
+
+	if(mqtt.broker_state == MQTT_BROKER_CONNECTED)
 	{
 		A7670_MQTT_PubQueueMessages();
 		A7670_MQTT_ReadNewMessages();

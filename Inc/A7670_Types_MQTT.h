@@ -46,10 +46,12 @@ typedef enum
 
 typedef enum
 {
-	MQTT_DISCONNECT_OK  = 0,
-	MQTT_DISCONNECT     = 1,
-	MQTT_REALESE_CLIENT = 2,
-	MQTT_STOP           = 3
+	MQTT_DISC_DISCONNECT_OK        = 0,
+	MQTT_DISC_DISCONNECT           = 1,
+	MQTT_DISC_CHECK_ACQUIRE_CLIENT = 2,
+	MQTT_DISC_REALESE_CLIENT       = 3,
+	MQTT_DISC_STOP                 = 4,
+	MQTT_DISC_ERROR                = 5
 }MQTT_Disconnect_State;
 
 
@@ -58,6 +60,13 @@ typedef enum
 	MQTT_RECONNECT_DISABLE  = 0,
 	MQTT_RECONNECT_ENABLE   = 1
 }MQTT_Auto_Reconnect;
+
+typedef enum
+{
+	MQTT_CLIENT_NOT_ACQUIRED = 0,
+	MQTT_CLIENT_ACQUIRED     = 1,
+	MQTT_CLIENT_ERROR        = 2
+}MQTT_Client_State;
 
 typedef enum
 {

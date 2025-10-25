@@ -26,13 +26,14 @@ CMD_Status A7670_MQTT_SetAuth(char* username, char* password);
 MQTT_Status A7670_MQTT_Connect(MQTT_Auto_Reconnect state);
 MQTT_Broker_State A7670_MQTT_CheckBrokerConnection();
 CMD_Status A7670_MQTT_SetAutoReconnect(MQTT_Auto_Reconnect state);
-CMD_Status A7670_MQTT_Disconnect();
+CMD_Status A7670_MQTT_Disconnect(void);
 CMD_Status A7670_MQTT_SubscribeTopic(char* topic);
 void A7670_MQTT_ReadNewMessages();
 
 CMD_Status A7670_MQTT_CMD_Start(void);
 CMD_Status A7670_MQTT_CMD_Stop(void);
 CMD_Status A7670_MQTT_CMD_AcquireClient(void);
+MQTT_Client_State A7670_MQTT_CheckAcquireClient(void);
 CMD_Status A7670_MQTT_CMD_ReleaseClient(void);
 void A7670_MQTT_SetSSL(MQTT_SSL_State ssl_status);
 CMD_Status A7670_MQTT_CMD_SSLConfig(void);

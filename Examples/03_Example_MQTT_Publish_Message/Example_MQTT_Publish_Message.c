@@ -35,7 +35,8 @@ int main(void)
 
   A7670_MQTT_setClient(0, "client1");                      //Sets a index and client name
   A7670_MQTT_SetBroker("tcp://mybroker:1883", 60, 1, 1);   //Sets broker configs
-  A7670_MQTT_Connect();                                    //Connect MQTT
+  A7670_MQTT_Connect(MQTT_RECONNECT_ENABLE);               //Connect MQTT broker and enable auto reconnect
+
 
   while (1)
   {
