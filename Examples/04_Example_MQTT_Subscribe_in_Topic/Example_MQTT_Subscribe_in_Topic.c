@@ -10,8 +10,18 @@
     is "OFF", turn off the internal LED
     
     Infos:
-        Nucleo: STM32G4XX
         Framework: Cube IDE
+
+        MCU
+          Nucleo: STM32G4XX
+          Clock used: 80MHz on all peripherals
+
+        Connection UART
+          UART 4
+          Mode: Asynchronous
+          DMA: in RX, and uses Normal Mode
+          Interruptions: Enable UART interruption
+          Baud Rate: 115200 8N1
 =======================================================*/
 
 #include "main.h"

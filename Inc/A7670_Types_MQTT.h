@@ -18,6 +18,8 @@
 #define TOPIC_SIZE 20
 #define PAYLOAD_SIZE 40
 
+#define MQTT_KEEP_ALIVE_DEFAULT 60
+
 typedef enum
 {
 	MQTT_CONNECT_OK    = 0,
@@ -99,6 +101,18 @@ typedef enum
 
 }Publish_Message_state;
 
+typedef enum
+{
+	MQTT_QoS_0 = 0,
+	MQTT_QoS_1 = 1,
+	MQTT_QoS_2 = 2
+}MQTT_QoS;
+
+typedef enum
+{
+	MQTT_CLEAR_SESSION_DISABLE = 0,
+	MQTT_CLEAR_SESSION_ENABLE  = 1
+}MQTT_Clear_Session;
 
 
 //=================== -- Structs -- =======================

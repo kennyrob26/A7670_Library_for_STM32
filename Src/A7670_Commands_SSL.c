@@ -9,7 +9,7 @@
 #include "A7670_Commands_MQTT.h"
 
 
-CMD_Status A7670_SSLConfig(uint8_t context, uint8_t version, uint8_t authmode, char *ca_name)
+CMD_Status A7670_SSLConfig(uint8_t context, SSL_Version version, SSL_Auth authmode, char *ca_name)
 {
 	A7670_CMD_SSLConfigVersion(context, version);
 	A7670_CMD_SSLConfigAuthMode(context, authmode);
@@ -20,7 +20,7 @@ CMD_Status A7670_SSLConfig(uint8_t context, uint8_t version, uint8_t authmode, c
 	return CMD_OK;
 }
 
-CMD_Status A7670_CMD_SSLConfigVersion(uint8_t ctx_index, uint8_t ssl_version)
+CMD_Status A7670_CMD_SSLConfigVersion(uint8_t ctx_index, SSL_Version ssl_version)
 {
 	char command[30];
 	sprintf(command, "AT+CSSLCFG=\"sslversion\",%d,%d", ctx_index, ssl_version);
@@ -32,7 +32,7 @@ CMD_Status A7670_CMD_SSLConfigVersion(uint8_t ctx_index, uint8_t ssl_version)
 		return CMD_ERROR;
 }
 
-CMD_Status A7670_CMD_SSLConfigAuthMode(uint8_t ctx_index, uint8_t auth_mode)
+CMD_Status A7670_CMD_SSLConfigAuthMode(uint8_t ctx_index, SSL_Auth auth_mode)
 {
 	char command[30];
 	sprintf(command, "AT+CSSLCFG=\"authmode\",%d,%d", ctx_index, auth_mode);

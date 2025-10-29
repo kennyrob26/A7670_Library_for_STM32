@@ -41,7 +41,7 @@ CMD_Status A7670_MQTT_setClient(uint8_t client_id, char *client_name)
  * @param QoS Defines QoS values, 0 at 2
  * @return CMD_Status
  */
-CMD_Status A7670_MQTT_SetBroker(char *broker_adress, uint8_t keep_alive, uint8_t clear_session, uint8_t QoS)
+CMD_Status A7670_MQTT_SetBroker(char *broker_adress, uint8_t keep_alive, MQTT_Clear_Session clear_session, MQTT_QoS QoS)
 {
 	if(broker_adress == NULL || strcmp(broker_adress, "") == 0)
 		return CMD_ERROR;
@@ -192,9 +192,9 @@ MQTT_Status A7670_MQTT_Connect(MQTT_Auto_Reconnect state)
 MQTT_Broker_State A7670_MQTT_CheckBrokerConnection()
 {
 	const char command[] = "AT+CMQTTCONNECT?";
-	const char expected_response[] = "+CMQTTCONNECT: ";
+	const char expected_response[] = "OK";
 
-	if(AT_sendCommand(command, expected_response, 2000) == AT_OK)
+	if(AT_sendCommand(command, expected_response, 3000) == AT_OK)
 	{
 		char response[150];
 		strcpy(response, (char*)at.response);
@@ -889,9 +889,12 @@ void A7670_MQTT_PubQueueMessages()
 CMD_Status A7670_MQTT_Handler()
 {
 	static uint32_t time_tick = 0;
-	if((HAL_GetTick() - time_tick) > 5000)
+	if((HAL_GetTick() - time_tick) > 10000)
 	{
-		//A7670_MQTT_CheckBrokerConnection();
+		uint8_t count = 0;
+		while(A7670_MQTT_CheckBrokerConnection() != MQTT_BROKER_CONNECTED && count < 3)
+			count++;
+
 		time_tick = HAL_GetTick();
 	}
 
