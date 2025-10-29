@@ -41,7 +41,7 @@ typedef struct AT_Wait_Response
 {
 	uint32_t start_tick;
 	uint32_t timeout;
-	char expected_response[30];
+	char expected_response[50];
 	uint8_t waiting_status;
 }AT_Wait_Response;
 

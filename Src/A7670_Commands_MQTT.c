@@ -86,6 +86,26 @@ CMD_Status A7670_MQTT_SetAuth(char* username, char* password)
  * @retval CMD_OK if it was possible to connect correctly to the broker
  * @retval CMD_ERROR if we are unable to connect to the broker
  */
+
+
+CMD_Status A7670_MQTT_TesteSSL()
+{
+	AT_sendCommand("AT+CSSLCFG=\"sslversion\",0,4", "", 0);
+	HAL_Delay(1000);
+	AT_sendCommand("AT+CSSLCFG=\"authmode\",0,1", "", 0);
+	HAL_Delay(1000);
+	AT_sendCommand("AT+CSSLCFG=\"cacert\",0,\"isrgrootx1.pem\"", "", 0);
+	HAL_Delay(1000);
+	AT_sendCommand("AT+CSSLCFG=\"enableSNI\",0,1", "", 0);
+	HAL_Delay(3000);
+	AT_sendCommand("AT+CMQTTSTART", "+CMQTTSTART: 0", 10000);
+	HAL_Delay(1000);
+	AT_sendCommand("AT+CMQTTACCQ=0,\"Client\",1", "OK", 5000);
+	HAL_Delay(200);
+	AT_sendCommand("AT+CMQTTSSLCFG=0,0", "OK", 500);
+	AT_sendCommand("AT+CMQTTCONNECT=0,\"tcp://2aaad8b7d0b94e10a001e45c03f14699.s1.eu.hivemq.cloud:8883\",60,1,\"kenny\",\"Kenny12345\"", "+CMQTTCONNECT: 0,0", 10000);
+	HAL_Delay(50000);
+}
 MQTT_Status A7670_MQTT_Connect(MQTT_Auto_Reconnect state)
 {
 	A7670_MQTT_SetAutoReconnect(state);
@@ -310,7 +330,9 @@ CMD_Status A7670_MQTT_CMD_Stop(void)
 CMD_Status A7670_MQTT_CMD_AcquireClient(void)
 {
 	char command[50];
-	sprintf(command, "%s%d,\"%s\"", "AT+CMQTTACCQ=", mqtt.client.id, mqtt.client.name);
+
+
+	sprintf(command, "%s%d,\"%s\",%d", "AT+CMQTTACCQ=", mqtt.client.id, mqtt.client.name, mqtt.ssl_state);
 	const char expected_response[] = "OK";
 
 	if(AT_sendCommand(command, expected_response, 5000) ==  AT_OK)
@@ -379,11 +401,11 @@ CMD_Status A7670_MQTT_CMD_SSLConfig(void)
 	char command[30] = "AT+CMQTTSSLCFG=0,0";
 	if(AT_sendCommand(command, "OK", 500) == AT_OK)
 	{
-		strcpy(command, "AT+CMQTTCFG=\"argtopic\",0,1,1");
-		if(AT_sendCommand(command, "OK", 1000) == AT_OK)
-		{
+		//strcpy(command, "AT+CMQTTCFG=\"argtopic\",0,1,1");
+		//if(AT_sendCommand(command, "OK", 1000) == AT_OK)
+		//{
 			return CMD_OK;
-		}
+		//}
 	}
 	return CMD_ERROR;
 }
@@ -409,10 +431,12 @@ MQTT_Status A7670_MQTT_CMD_Connect(void)
 		sprintf(command, "%s%d,\"%s\",%d,%d,\"%s\",\"%s\"", "AT+CMQTTCONNECT=", mqtt.client.id, mqtt.broker.adress, mqtt.broker.kepp_alive, mqtt.broker.clear_session, mqtt.auth.username, mqtt.auth.password);
 	}
 
-	const char expected_response[] = "CMQTTCONNECT: ";
+	//const char expected_response[] = "CMQTTCONNECT: ";
+	const char expected_response[] = "+CMQTTCONNECT:";
 
 	if(AT_sendCommand(command, expected_response , 10000) == AT_OK)
 	{
+		HAL_Delay(3000);
 		MQTT_Status status = A7670_MQTT_CheckErrorCode();
 		return status;
 	}

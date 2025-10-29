@@ -16,7 +16,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	{
 		at.response[Size] = '\0';
 
-		if(strstr((char*)at.response, "+CMQTTRXEND: 0") != NULL)
+		if(strstr((char*)at.response, "+CMQTTRXEND: 0") != NULL )
 			A7670_MQTT_QueuePushMessage(at.response);
 		else
 			at.existMessage = 1;
@@ -162,7 +162,7 @@ AT_Status AT_sendCommand(const char *command, const char *expected_response, uin
 	at.command[length]     = '\r';
 	at.command[length + 1] = '\0';
 
-	if(HAL_UART_Transmit(at.huart, (uint8_t*)at.command, length+1, 100) != HAL_OK)
+	if(HAL_UART_Transmit(at.huart, (uint8_t*)at.command, length+1, 500) != HAL_OK)
 	{
 		return AT_ERROR;
 	}

@@ -17,6 +17,8 @@
 
 extern void (*MQTT_Callback_Response)(MQTT_RESPONSE mqtt_resp);
 
+CMD_Status A7670_MQTT_TesteSSL();
+
 CMD_Status A7670_MQTT_Register_Callback_Response(void (*callback_function)(MQTT_RESPONSE mqtt_resp));
 
 CMD_Status A7670_MQTT_setClient(uint8_t client_id, char *client_name);
