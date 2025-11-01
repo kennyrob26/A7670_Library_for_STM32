@@ -50,7 +50,7 @@ int main(void)
   A7670_CMD_Creset();                                                               //reset to module A7670
 
   A7670_SSLConfig(0, SSL_VERSION_ALL, SSL_AUTH_SERVER_ONLY, "isrgrootx1.pem");      //Sets SSL Context
-  A7670_MQTT_setClient(0, "client1");                                               //Sets Client Index name
+  A7670_MQTT_setClient("client1");                                               //Sets Client Index name
   A7670_MQTT_SetAuth("kenny", "Kenny12345");                                        //Sets username and password to auth broker
   A7670_MQTT_SetBroker("tcp://mylink.s1.eu.hivemq.cloud:8883", MQTT_KEEP_ALIVE_DEFAULT, MQTT_CLEAR_SESSION_ENABLE, MQTT_QoS_1);  
 

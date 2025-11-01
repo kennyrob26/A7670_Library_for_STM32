@@ -20,12 +20,12 @@ void (*MQTT_Callback_Response)(MQTT_RESPONSE mqtt_resp);
  * @param client_name It is the client name
  * @return CMD_Status
  */
-CMD_Status A7670_MQTT_setClient(uint8_t client_id, char *client_name)
+CMD_Status A7670_MQTT_setClient(char *client_name)
 {
 	if(client_name == NULL || strcmp(client_name, "") == 0)
 		return CMD_ERROR;
 
-	mqtt.client.id 	 = client_id;
+	mqtt.client.id 	 = MQTT_CLIENT_INDEX_0;
 	strcpy(mqtt.client.name, client_name);
 
 	return CMD_OK;

@@ -18,6 +18,7 @@
 #define TOPIC_SIZE 20
 #define PAYLOAD_SIZE 40
 
+#define MQTT_CLIENT_INDEX_0 0
 #define MQTT_KEEP_ALIVE_DEFAULT 60
 
 typedef enum

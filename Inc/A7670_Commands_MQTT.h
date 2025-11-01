@@ -21,7 +21,7 @@ CMD_Status A7670_MQTT_TesteSSL();
 
 CMD_Status A7670_MQTT_Register_Callback_Response(void (*callback_function)(MQTT_RESPONSE mqtt_resp));
 
-CMD_Status A7670_MQTT_setClient(uint8_t client_id, char *client_name);
+CMD_Status A7670_MQTT_setClient(char *client_name);
 CMD_Status A7670_MQTT_SetBroker(char *broker_adress, uint8_t keep_alive, MQTT_Clear_Session clear_session, MQTT_QoS QoS);
 CMD_Status A7670_MQTT_SetAuth(char* username, char* password);
 

@@ -15,6 +15,8 @@
 CMD_Status A7670_MQTT_Publish_Latitude(const char* topic_latitude);
 CMD_Status A7670_MQTT_Publish_Longitude(const char* topic_longitude);
 CMD_Status A7670_MQTT_Publish_LatLon(const char* topic_LatLon);
+CMD_Status A7670_MQTT_Publish_Date(const char* topic_date);
+CMD_Status A7670_MQTT_Publish_UTC_Time(const char* utc_time);
 CMD_Status A7670_MQTT_Publish_Speed(const char* topic_speed);
 
 #endif /* INC_A7670_LIBRARY_FOR_STM32_A7670_MQTT_PUBLISH_H_ */

@@ -8,6 +8,10 @@
 
 
 #include "A7670_Commands_GNSS.h"
+#include <stdint.h>
+#include <stdio.h>
+#include "string.h"
+#include <stdlib.h>
 
 NMEA nmea;
 GNSS gnss;
@@ -97,6 +101,41 @@ static float calculateSpeedKmh(char* speed_kont)
 		return 0;
 }
 
+
+// Example "CGPSINFO: 2125.22430,S,05003.66783,W,060925,172333.00,424.5,0.000,198.11";
+static void NmeaUtcDateTime()
+{
+	char *ptr;
+
+	char day[3];
+	char mounth[3];
+	char year[5];
+
+	ptr = nmea.date;
+	strncpy(day, ptr, 2);
+	(ptr+=2);
+	strncpy(mounth, ptr, 2);
+	(ptr+=2);
+	strncpy(year, ptr, 2);
+
+	char hour[3];
+	char minute[3];
+	char second[3];
+
+	ptr = nmea.utc_time;
+	strncpy(hour, ptr, 2);
+	(ptr+=2);
+	strncpy(minute, ptr, 2);
+	(ptr+=2);
+	strncpy(second, ptr, 2);
+
+    sprintf(gnss.date, "20%s-%s-%s", year, mounth, day);
+    sprintf(gnss.utc_time, "%s:%s:%s", hour, minute, second);
+
+    sprintf(gnss.utc_date_time, "%sT%sZ", gnss.date, gnss.utc_time);
+
+}
+
 /**
  * @brief Private Function -> Scrolls through NMEA data
  * 
@@ -119,11 +158,45 @@ static void nextValueNmea(char **value, char *previous_value)
     }
 }
 
+static void readGNSSINFO(char *gnss_buffer)
+{
+    strcpy(gnss_info.response, gnss_buffer);
+
+    uint8_t mode, gps, glonass, beidou;
+    float latitude, longitude, altitude, speed, course, pdop, hdop, vdop;
+    char N_or_S, E_or_W;
+    char date[7];
+    char time[9];
+
+    const char filter[] = "%*[^+]+CGNSSINFO: %hhu,%hhu,%hhu,%hhu,%f,%c,%f,%c,%6s,%8s,%f,%f,%f,%f,%f,%f";
+    sscanf(gnss_info.response, filter , &mode,&gps, &glonass, &beidou, &latitude,&N_or_S,&E_or_W, &longitude,date, time,&altitude,&speed,&course,&pdop,&hdop,&vdop);
+
+    gnss_info.mode              = mode;
+    gnss_info.GPS_Satelites     = gps;
+    gnss_info.GLONASS_Satelites = glonass;
+    gnss_info.BEIDOU_Satelites  = beidou;
+    gnss_info.lat               = latitude;
+    gnss_info.N_or_S            = N_or_S;
+    gnss_info.log               = longitude;
+    gnss_info.E_or_W            = E_or_W;
+    strcpy(gnss_info.date, date);
+    strcpy(gnss_info.utc_time, time);
+    gnss_info.alt               = altitude;
+    gnss_info.speed             = speed;
+    gnss_info.course            = course;
+    gnss_info.PDOP              = pdop;
+    gnss_info.HDOP              = hdop;
+    gnss_info.VDOP              = vdop;
+
+}
+
 /**
  * @brief Private Function -> Handles NMEA values
  * 
  * 	This function finds delimiter for NMEA values
  */
+
+// Example "CGPSINFO: 2125.22430,S,05003.66783,W,060925,172333.00,424.5,0.000,198.11"; //CGPSINFO: 2125.22430,S,05003.66783,W,060925,172333.00,424.5,0.000,198.11
 static void readNMEA(char *dataNMEA)
 {
 	strcpy(nmea.command, dataNMEA);
@@ -148,6 +221,7 @@ static void readNMEA(char *dataNMEA)
     gnss.longitude = calculateLongitude(nmea.log, nmea.E_or_W);
     sprintf(gnss.latitude_longitude, "%f, %f", gnss.latitude, gnss.longitude);
     gnss.speed_kmh = calculateSpeedKmh(nmea.speed);
+    NmeaUtcDateTime();
 
 }
 

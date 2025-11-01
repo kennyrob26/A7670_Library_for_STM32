@@ -44,7 +44,7 @@ int main(void)
   AT_defineUART(&huart4);
   A7670_CMD_Creset();
 
-  A7670_MQTT_setClient(0, "client1");                      //Sets a index and client name
+  A7670_MQTT_setClient("client1");                      //Sets a index and client name
   A7670_MQTT_SetBroker("tcp://mybroker:1883", 60, 1, 1);   //Sets broker configs
   A7670_MQTT_SetAuth("MyUser", "MyPassword");              //Sets username and password to broker
   A7670_MQTT_Connect(MQTT_RECONNECT_ENABLE);               //Connect MQTT broker and enable auto 
