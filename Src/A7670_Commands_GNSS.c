@@ -13,8 +13,7 @@
 #include "string.h"
 #include <stdlib.h>
 
-NMEA nmea;
-GNSS gnss;
+GNSS_INFO gnss;
 
 //CMD_Status processAtCommand();
 
@@ -28,9 +27,9 @@ GNSS gnss;
  *	 A private function that calculates Latitude with base GNSS data.
  *	 Converts degress/minutes Latitude to decimal Latitude
  */
-static float calculateLatitude(char *latitude_nema, char *N_or_S)
+static float calculateLatitude(char *latitude_nema, char N_or_S)
 {
-    if(strlen(latitude_nema) && strlen(N_or_S))
+    if(strlen(latitude_nema) && (N_or_S == 'N' || N_or_S == 'S'))
     {
         char lat_degress_buffer[3];
         char lat_minutes_buffer[15];
@@ -43,7 +42,7 @@ static float calculateLatitude(char *latitude_nema, char *N_or_S)
 
         float latitude = lat_degress + (lat_minutes / 60);
 
-        if(N_or_S[0] == 'S')
+        if(N_or_S == 'S')
             latitude = latitude * -1;
 
         return latitude;
@@ -58,9 +57,9 @@ static float calculateLatitude(char *latitude_nema, char *N_or_S)
  *	 A private function that calculates Longitude with base GNSS data.
  *	 Converts degress/minutes Longitude to decimal Longitude
  */
-static float calculateLongitude(char *longitude_nema, char *E_or_W)
+static float calculateLongitude(char *longitude_nema, char E_or_W)
 {
-    if(strlen(longitude_nema) && strlen(E_or_W))
+    if(strlen(longitude_nema) && (E_or_W == 'E' || E_or_W == 'W'))
     {
         char log_degress_buffer[4];
         char log_minutes_buffer[15];
@@ -73,7 +72,7 @@ static float calculateLongitude(char *longitude_nema, char *E_or_W)
 
         float longitude = log_degress + (log_minutes / 60);
 
-        if(E_or_W[0] == 'W')
+        if(E_or_W == 'W')
             longitude = (longitude * -1);
 
         return longitude;
@@ -87,14 +86,13 @@ static float calculateLongitude(char *longitude_nema, char *E_or_W)
  *	 A private function that calculates speed with base GNSS data.
  *	 Converts knots to km/h
  */
-static float calculateSpeedKmh(char* speed_kont)
+static float calculateSpeedKmh(float speed_kont)
 {
-	float speed_kontf = atof(speed_kont);
 
-	if((speed_kontf != 0) && (speed_kontf < 200))
+	if((speed_kont != 0) && (speed_kont < 200))
 	{
 		const float const_knot_to_kmh = 1.825;
-		float speed_kmh = speed_kontf * const_knot_to_kmh;
+		float speed_kmh = speed_kont * const_knot_to_kmh;
 		return speed_kmh;
 	}
 	else
@@ -103,126 +101,119 @@ static float calculateSpeedKmh(char* speed_kont)
 
 
 // Example "CGPSINFO: 2125.22430,S,05003.66783,W,060925,172333.00,424.5,0.000,198.11";
-static void NmeaUtcDateTime()
+static void NmeaUtcDateTime(char* date, char* time)
 {
-	char *ptr;
+    char date_utc[20];
+    char time_utc[15];
 
 	char day[3];
 	char mounth[3];
-	char year[5];
+	char year[3];
 
-	ptr = nmea.date;
-	strncpy(day, ptr, 2);
-	(ptr+=2);
-	strncpy(mounth, ptr, 2);
-	(ptr+=2);
-	strncpy(year, ptr, 2);
+    sscanf(date, "%2c%2c%2c", day, mounth, year);
+    sprintf(date_utc, "20%s-%s-%s", year, mounth, day);
 
 	char hour[3];
 	char minute[3];
 	char second[3];
+    char decimal_second;
 
-	ptr = nmea.utc_time;
-	strncpy(hour, ptr, 2);
-	(ptr+=2);
-	strncpy(minute, ptr, 2);
-	(ptr+=2);
-	strncpy(second, ptr, 2);
+    sscanf(time, "%2s%2s%2s.%1c", hour, minute, second, &decimal_second);
+    sprintf(time_utc, "%s:%s:%s.%1c", hour, minute, second, decimal_second);
 
-    sprintf(gnss.date, "20%s-%s-%s", year, mounth, day);
-    sprintf(gnss.utc_time, "%s:%s:%s", hour, minute, second);
-
-    sprintf(gnss.utc_date_time, "%sT%sZ", gnss.date, gnss.utc_time);
-
+    sprintf(gnss.date_time_utc, "%sT%s", date_utc, time_utc);
 }
 
-/**
- * @brief Private Function -> Scrolls through NMEA data
- * 
- * 	* This function finds delimiter for NMEA values.
- * 	* The function handles one value per call, where "value" is the current value to be handled,
- *    and "previous_value" was the previous value.
- * 	*When we finish processing the current value we point to the next one, and thus close the cycle
- * 	
- */
-static void nextValueNmea(char **value, char *previous_value)
-{
-    if(previous_value != NULL)
-    {
-        *value = strstr(previous_value, ",");
-        if(*value != NULL)
-        {
-            **value = '\0';
-            *value += 1;
-        }
-    }
-}
 
 static void readGNSSINFO(char *gnss_buffer)
 {
-    strcpy(gnss_info.response, gnss_buffer);
+	char *remove_echo;
+	remove_echo = strstr(gnss_buffer, "+CGNSSINFO: ");
 
-    uint8_t mode, gps, glonass, beidou;
-    float latitude, longitude, altitude, speed, course, pdop, hdop, vdop;
-    char N_or_S, E_or_W;
-    char date[7];
-    char time[9];
+    strcpy(gnss.response, gnss_buffer);
 
-    const char filter[] = "%*[^+]+CGNSSINFO: %hhu,%hhu,%hhu,%hhu,%f,%c,%f,%c,%6s,%8s,%f,%f,%f,%f,%f,%f";
-    sscanf(gnss_info.response, filter , &mode,&gps, &glonass, &beidou, &latitude,&N_or_S,&E_or_W, &longitude,date, time,&altitude,&speed,&course,&pdop,&hdop,&vdop);
+	if(strcmp(gnss.response, "+CGNSSINFO: ,,,,,,,,") == 0)
+	{
+		gnss.mode = GNSS_FIX_NOT_FIXED;
+	}
+	else
+	{
+		uint8_t count_values = 0;
+		uint8_t mode, gps, glonass, beidou;
+		float  altitude, speed, course, pdop, hdop, vdop;
+		char N_or_S, E_or_W;
+		char latitude[13];
+		char longitude[14];
+		char date[7];
+		char time[9];
 
-    gnss_info.mode              = mode;
-    gnss_info.GPS_Satelites     = gps;
-    gnss_info.GLONASS_Satelites = glonass;
-    gnss_info.BEIDOU_Satelites  = beidou;
-    gnss_info.lat               = latitude;
-    gnss_info.N_or_S            = N_or_S;
-    gnss_info.log               = longitude;
-    gnss_info.E_or_W            = E_or_W;
-    strcpy(gnss_info.date, date);
-    strcpy(gnss_info.utc_time, time);
-    gnss_info.alt               = altitude;
-    gnss_info.speed             = speed;
-    gnss_info.course            = course;
-    gnss_info.PDOP              = pdop;
-    gnss_info.HDOP              = hdop;
-    gnss_info.VDOP              = vdop;
+		//const char filter[] = "%*[^+]+CGNSSINFO: %hhu,%hhu,%hhu,%hhu,%11s,%c,%12s,%c,%6s,%8s,%f,%f,%f,%f,%f,%f";
+		const char filter[] = "+CGNSSINFO: %hhu,%hhu,%hhu,%hhu,%11s,%c,%12s,%c,%6s,%8s,%f,%f,%f,%f,%f,%f";
+		count_values = sscanf(gnss.response, filter , &mode, &gps, &glonass, &beidou, latitude,&N_or_S,longitude, &E_or_W, date, time, &altitude, &speed, &course, &pdop, &hdop, &vdop);
 
+		if(count_values == 16)
+		{
+			gnss.mode = mode;
+			if(gnss.mode != GNSS_FIX_NOT_FIXED)
+			{
+				gnss.GPS_Satelites     = gps;
+				gnss.GLONASS_Satelites = glonass;
+				gnss.BEIDOU_Satelites  = beidou;
+				gnss.latitude          = calculateLatitude(latitude, N_or_S);
+				gnss.longitude         = calculateLongitude(longitude, E_or_W);
+				sprintf(gnss.latitude_longitude, "%f, %f", gnss.latitude, gnss.longitude);
+				NmeaUtcDateTime(date, time);
+				gnss.alt               = altitude;
+				gnss.speed             = calculateSpeedKmh(speed);
+				gnss.course            = course;
+				gnss.PDOP              = pdop;
+				gnss.HDOP              = hdop;
+				gnss.VDOP              = vdop;
+			}
+
+		}
+	}
 }
 
-/**
- * @brief Private Function -> Handles NMEA values
- * 
- * 	This function finds delimiter for NMEA values
- */
-
-// Example "CGPSINFO: 2125.22430,S,05003.66783,W,060925,172333.00,424.5,0.000,198.11"; //CGPSINFO: 2125.22430,S,05003.66783,W,060925,172333.00,424.5,0.000,198.11
-static void readNMEA(char *dataNMEA)
+static void readGPSINFO(char *gnss_buffer)
 {
-	strcpy(nmea.command, dataNMEA);
+	char *remove_echo;
+	remove_echo = strstr(gnss_buffer, "+CGPSINFO: ");
+	strcpy(gnss.response, gnss_buffer);
 
-	if(strlen(nmea.command) != 0)
+	if(strcmp(gnss.response, "+CGPSINFO: ,,,,,,,,") == 0)
 	{
-		nmea.lat = strstr(nmea.command, " ");
-		*nmea.lat = '\0';
-		nmea.lat += 1;
+		gnss.mode = GNSS_FIX_NOT_FIXED;
 	}
+	else
+	{
+		gnss.mode = GNSS_FIX_FIXED;
 
-    nextValueNmea(&nmea.N_or_S, nmea.lat);
-    nextValueNmea(&nmea.log, nmea.N_or_S);
-    nextValueNmea(&nmea.E_or_W, nmea.log);
-    nextValueNmea(&nmea.date, nmea.E_or_W);
-    nextValueNmea(&nmea.utc_time, nmea.date);
-    nextValueNmea(&nmea.alt, nmea.utc_time);
-    nextValueNmea(&nmea.speed, nmea.alt);
-    nextValueNmea(&nmea.course, nmea.speed);
+		uint8_t count_values = 0;
 
-    gnss.latitude  = calculateLatitude(nmea.lat, nmea.N_or_S);
-    gnss.longitude = calculateLongitude(nmea.log, nmea.E_or_W);
-    sprintf(gnss.latitude_longitude, "%f, %f", gnss.latitude, gnss.longitude);
-    gnss.speed_kmh = calculateSpeedKmh(nmea.speed);
-    NmeaUtcDateTime();
+		float  altitude, speed, course;
+		char N_or_S, E_or_W;
+		char latitude[13];
+		char longitude[14];
+		char date[7];
+		char time[9];
 
+		//const char filter[] = "AT+CGPSINFO\r\r\n+CGPSINFO: %10s,%c,%11s,%c,%6s,%9s,%f,%f,%f";
+		const char filter[] = "+CGPSINFO: %10s,%c,%11s,%c,%6s,%9s,%f,%f,%f";
+		count_values = sscanf(gnss.response, filter , latitude,&N_or_S,longitude, &E_or_W, date, time, &altitude, &speed, &course);
+
+		//if(count_values == 9)
+		//{
+			gnss.latitude          = calculateLatitude(latitude, N_or_S);
+			gnss.longitude         = calculateLongitude(longitude, E_or_W);
+			sprintf(gnss.latitude_longitude, "%f, %f", gnss.latitude, gnss.longitude);
+			NmeaUtcDateTime(date, time);
+			gnss.alt               = altitude;
+			gnss.speed             = calculateSpeedKmh(speed);
+			gnss.course            = course;
+
+		//}
+	}
 }
 
 
@@ -348,14 +339,24 @@ CMD_Status A7670_GNSS_CMD_CGNSSPORTSWITCH()
  */
 CMD_Status A7670_GNSS_CMD_CGPSINFO()
 {
-	if(AT_sendCommand("AT+CGPSINFO", "OK", 10) == AT_OK)
+	if(AT_sendCommand("AT+CGPSINFO", "OK", 100) == AT_OK)
 	{
-		readNMEA((char*)at.response);
+		readGPSINFO((char*)at.response);
 		return CMD_OK;
 	}
 	return CMD_ERROR;
 }
 
+CMD_Status A7670_GNSS_CMD_GNSSINFO()
+{
+	if(AT_sendCommand("AT+CGNSSINFO", "OK", 100) == AT_OK)
+	{
+		readGNSSINFO((char*)at.response);
+		return CMD_OK;
+	}
+	return CMD_ERROR;
+
+}
 
 
 

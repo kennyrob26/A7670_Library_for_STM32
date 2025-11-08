@@ -14,6 +14,7 @@
 #include "A7670_Commands_SIM.h"
 #include "A7670_MQTT_Publish.h"
 #include "A7670_Commands_SSL.h"
+#include "A7670_Commands_SMS.h"
 #include <stdio.h>
 #include <stdlib.h>
 

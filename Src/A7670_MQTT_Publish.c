@@ -28,15 +28,15 @@ CMD_Status A7670_MQTT_Publish_LatLon(const char* topic_LatLon)
 {
 	return(A7670_MQTT_PublishMessage(topic_LatLon, gnss.latitude_longitude));
 }
-/*
+
 CMD_Status A7670_MQTT_Publish_UTC_DateTime(const char* topic_utc_date_time)
 {
-	return(A7670_MQTT_PublishMessage(topic_utc_time, gnss.utc_date_time));
+	return(A7670_MQTT_PublishMessage(topic_utc_date_time, gnss.date_time_utc));
 }
-*/
+
 CMD_Status A7670_MQTT_Publish_Speed(const char* topic_speed)
 {
 	char speed[5];
-	sprintf(speed, "%.2f", gnss.speed_kmh);
+	sprintf(speed, "%.2f", gnss.speed);
 	return(A7670_MQTT_PublishMessage(topic_speed, speed));
 }

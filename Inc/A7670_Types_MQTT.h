@@ -12,8 +12,8 @@
 #include "stdio.h"
 #include <AT_Handler.h>
 
-#define MAX_MQTT_RECEIVE_MESSAGE 3
-#define SIZE_MESSAGE 100
+#define MAX_MQTT_RECEIVE_MESSAGE 5
+#define SIZE_MESSAGE 150
 #define MAX_MQTT_SEND_MESSAGE 5
 #define TOPIC_SIZE 20
 #define PAYLOAD_SIZE 40
@@ -160,12 +160,14 @@ typedef struct MQTT
 
 }MQTT;
 
+/*
 typedef struct
 {
     uint8_t head;
     uint8_t tail;
     uint8_t count;
 } RingBuffer;
+*/
 
 typedef struct
 {

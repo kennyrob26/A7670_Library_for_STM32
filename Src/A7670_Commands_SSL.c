@@ -23,7 +23,7 @@ CMD_Status A7670_SSLConfig(uint8_t context, SSL_Version version, SSL_Auth authmo
 CMD_Status A7670_CMD_SSLConfigVersion(uint8_t ctx_index, SSL_Version ssl_version)
 {
 	char command[30];
-	sprintf(command, "AT+CSSLCFG=\"sslversion\",%d,%d", ctx_index, ssl_version);
+	sprintf(command, "AT+CSSLCFG=\"sslversion\",%hhu,%hhu", ctx_index, ssl_version);
 	if(AT_sendCommand(command, "OK", 2000) == AT_OK)
 	{
 		return CMD_OK;
@@ -47,8 +47,8 @@ CMD_Status A7670_CMD_SSLConfigAuthMode(uint8_t ctx_index, SSL_Auth auth_mode)
 CMD_Status A7670_CMD_SSLConfigCacert(uint8_t ctx_index, const char* ca_name)
 {
 	char command[50] = "AT+CSSLCFG=\"cacert\",0,\"isrgrootx1.pem\"";
-	char expected_response[50] = "AT+CSSLCFG=\"cacert\",0,\"isrgrootx1.pem\"";
-	memset(at.response, 0, 150);
+	//char expected_response[50] = "AT+CSSLCFG=\"cacert\",0,\"isrgrootx1.pem\"";
+	memset((char*)at.response, 0, 150);
 	//sprintf(command, "AT+CSSLCFG=\"cacert\",%d,\"%s\"", ctx_index, ca_name);
 	if(AT_sendCommand(command, "OK", 5000) == AT_OK)
 	{

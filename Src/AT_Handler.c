@@ -18,6 +18,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 
 		if(strstr((char*)at.response, "+CMQTTRXEND: 0") != NULL )
 			A7670_MQTT_QueuePushMessage(at.response);
+		else if(strstr((char*)at.response, "+CMTI: \"SM\"") != NULL)
+			A7670_SMS_QueuePushMessage(at.response);
 		else
 			at.existMessage = 1;
 
@@ -211,6 +213,7 @@ AT_Status AT_existNewMessage(uint16_t timeout)
 		return AT_ERROR;
 
 }
+
 
 
 

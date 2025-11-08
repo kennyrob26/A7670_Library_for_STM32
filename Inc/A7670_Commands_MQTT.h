@@ -50,8 +50,8 @@ CMD_Status A7670_MQTT_CMD_ConfirmSubTopic(void);
 MQTT_Status A7670_MQTT_PublishHandler(const char* topic, const char* message_payload);
 CMD_Status A7670_MQTT_ResponseHandler();
 
-uint8_t A7670_MQTT_QueueIsFull(RingBuffer *ring_buffer);
-uint8_t A7670_MQTT_QueueIsEmpty(RingBuffer *ring_buffer);
+//uint8_t A7670_RingBufferIsFull(RingBuffer *ring_buffer);
+//uint8_t A7670_RingBufferIsEmpty(RingBuffer *ring_buffer);
 CMD_Status A7670_MQTT_QueuePushMessage(char *mqttMessage);
 CMD_Status A7670_MQTT_QueuePopMessage();
 

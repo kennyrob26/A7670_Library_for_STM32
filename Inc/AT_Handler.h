@@ -57,9 +57,12 @@ typedef struct AT_INFO
 
 extern AT_INFO at;
 
-
-
-
+typedef struct
+{
+    uint8_t head;
+    uint8_t tail;
+    uint8_t count;
+} RingBuffer;
 
 
 //void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size);
@@ -71,6 +74,7 @@ AT_Status AT_checkWaitResponse();
 AT_Status AT_checkWaitResponse_Blocking();
 AT_Status AT_sendCommand(const char *command, const char *expected_response, uint16_t timeout);
 AT_Status AT_existNewMessage(uint16_t timeout);
+
 
 
 

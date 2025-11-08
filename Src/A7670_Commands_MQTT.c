@@ -87,25 +87,6 @@ CMD_Status A7670_MQTT_SetAuth(char* username, char* password)
  * @retval CMD_ERROR if we are unable to connect to the broker
  */
 
-
-CMD_Status A7670_MQTT_TesteSSL()
-{
-	AT_sendCommand("AT+CSSLCFG=\"sslversion\",0,4", "", 0);
-	HAL_Delay(1000);
-	AT_sendCommand("AT+CSSLCFG=\"authmode\",0,1", "", 0);
-	HAL_Delay(1000);
-	AT_sendCommand("AT+CSSLCFG=\"cacert\",0,\"isrgrootx1.pem\"", "", 0);
-	HAL_Delay(1000);
-	AT_sendCommand("AT+CSSLCFG=\"enableSNI\",0,1", "", 0);
-	HAL_Delay(3000);
-	AT_sendCommand("AT+CMQTTSTART", "+CMQTTSTART: 0", 10000);
-	HAL_Delay(1000);
-	AT_sendCommand("AT+CMQTTACCQ=0,\"Client\",1", "OK", 5000);
-	HAL_Delay(200);
-	AT_sendCommand("AT+CMQTTSSLCFG=0,0", "OK", 500);
-	AT_sendCommand("AT+CMQTTCONNECT=0,\"tcp://2aaad8b7d0b94e10a001e45c03f14699.s1.eu.hivemq.cloud:8883\",60,1,\"kenny\",\"Kenny12345\"", "+CMQTTCONNECT: 0,0", 10000);
-	HAL_Delay(50000);
-}
 MQTT_Status A7670_MQTT_Connect(MQTT_Auto_Reconnect state)
 {
 	A7670_MQTT_SetAutoReconnect(state);
@@ -428,7 +409,7 @@ MQTT_Status A7670_MQTT_CMD_Connect(void)
 	}
 	else if(mqtt.auth_state == MQTT_AUTH_ENABLE)
 	{
-		sprintf(command, "%s%d,\"%s\",%d,%d,\"%s\",\"%s\"", "AT+CMQTTCONNECT=", mqtt.client.id, mqtt.broker.adress, mqtt.broker.kepp_alive, mqtt.broker.clear_session, mqtt.auth.username, mqtt.auth.password);
+		sprintf(command, "%s%hhu,\"%s\",%hu,%hhu,\"%s\",\"%s\"", "AT+CMQTTCONNECT=", mqtt.client.id, mqtt.broker.adress, mqtt.broker.kepp_alive, mqtt.broker.clear_session, mqtt.auth.username, mqtt.auth.password);
 	}
 
 	//const char expected_response[] = "CMQTTCONNECT: ";
@@ -460,7 +441,7 @@ MQTT_Status A7670_MQTT_CheckErrorCode()
     end = strstr(ptr_error, "\r");
     *end = '\0';
 
-    uint8_t id     = atoi(ptr_id);
+    //uint8_t id     = atoi(ptr_id);
     uint8_t error  = atoi(ptr_error);
 
     return(A7670_MQTT_TranslateErrorCode(error));
@@ -746,7 +727,7 @@ CMD_Status A7670_MQTT_ResponseHandler()
 
 /*================-- QUEUE Functions ---==========================*/
 
-uint8_t A7670_MQTT_QueueIsFull(RingBuffer *ring_buffer)
+uint8_t A7670_RingBufferIsFull(RingBuffer *ring_buffer)
 {
     if(ring_buffer->count >= MAX_MQTT_RECEIVE_MESSAGE)
         return 1;
@@ -754,7 +735,7 @@ uint8_t A7670_MQTT_QueueIsFull(RingBuffer *ring_buffer)
         return 0;
 }
 
-uint8_t A7670_MQTT_QueueIsEmpty(RingBuffer *ring_buffer)
+uint8_t A7670_RingBufferIsEmpty(RingBuffer *ring_buffer)
 {
     if(ring_buffer->count == 0)
         return 1;
@@ -762,9 +743,10 @@ uint8_t A7670_MQTT_QueueIsEmpty(RingBuffer *ring_buffer)
         return 0;
 }
 
+
 CMD_Status A7670_MQTT_QueuePushMessage(char *mqttMessage)
 {
-    if(A7670_MQTT_QueueIsFull((RingBuffer*)&mqtt_resp.queue.ring_buffer) == 0)
+    if(A7670_RingBufferIsFull((RingBuffer*)&mqtt_resp.queue.ring_buffer) == 0)
     {
     	uint8_t *head  = (uint8_t*) &mqtt_resp.queue.ring_buffer.head;
     	uint8_t *count = (uint8_t*) &mqtt_resp.queue.ring_buffer.count;
@@ -783,7 +765,7 @@ CMD_Status A7670_MQTT_QueuePushMessage(char *mqttMessage)
 
 CMD_Status A7670_MQTT_QueuePopMessage()
 {
-    if(A7670_MQTT_QueueIsEmpty((RingBuffer*)&mqtt_resp.queue.ring_buffer) == 0)
+    if(A7670_RingBufferIsEmpty((RingBuffer*)&mqtt_resp.queue.ring_buffer) == 0)
     {
     	uint8_t *tail  = (uint8_t*) &mqtt_resp.queue.ring_buffer.tail;
     	uint8_t *count = (uint8_t*) &mqtt_resp.queue.ring_buffer.count;
@@ -805,7 +787,7 @@ CMD_Status A7670_MQTT_QueuePopMessage()
 void A7670_MQTT_ReadNewMessages()
 {
 	uint32_t start_tick = HAL_GetTick();
-	while(A7670_MQTT_QueueIsEmpty((RingBuffer*)&mqtt_resp.queue.ring_buffer) != 1 && ((HAL_GetTick() - start_tick) < 100))
+	while(A7670_RingBufferIsEmpty((RingBuffer*)&mqtt_resp.queue.ring_buffer) != 1 && ((HAL_GetTick() - start_tick) < 100))
 	{
 		if(A7670_MQTT_QueuePopMessage() == CMD_OK)
 			A7670_MQTT_ResponseHandler();
@@ -853,7 +835,7 @@ CMD_Status A7670_MQTT_PublishMessage(const char* topic, const char* payload)
  */
 void A7670_MQTT_PubQueueMessages()
 {
-	if(A7670_MQTT_QueueIsEmpty(&mqtt_send.ring_buffer) == 0)
+	if(A7670_RingBufferIsEmpty(&mqtt_send.ring_buffer) == 0)
 	{
 		if((HAL_GetTick() - mqtt_send.start_tick) > 500)
 		{
